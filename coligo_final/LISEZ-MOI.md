@@ -1,0 +1,151 @@
+# COLIGO — guide de mise en ligne (sans terminal, sans installation)
+
+Ce projet fonctionne avec de simples fichiers HTML. Il n'y a rien à installer sur votre ordinateur. Vous ferez tout depuis votre navigateur.
+
+Il y a 3 étapes : **la base de données**, **la connexion du site à la base de données**, **la mise en ligne**.
+
+---
+
+## Design
+
+Toute l'application partage désormais une seule charte, définie dans **`css/theme.css`**.
+Le logo COLIGO est dans `assets/` : `logo-coligo.png` (fond transparent, pour les fonds clairs) et
+`logo-coligo-blanc.png` (version blanche, pour les fonds sombres). Il apparaît sur toutes les pages,
+sur les reçus et sur les listings imprimés. Si vous changez de charte un jour, modifiez les variables en haut de ce fichier : les
+cinq pages suivent automatiquement.
+
+- **Le bleu, c'est l'interface** (boutons, liens, rail de navigation) et rien d'autre.
+- **Les couleurs de statut veulent dire quelque chose** : Enregistré (ardoise, rien à
+  faire) → En transit (cyan, ça bouge) → Disponible (ambre, il faut agir) → Retiré
+  (vert, dossier clos).
+- **Tableaux sans défilement horizontal** : un tableau reste un tableau et toutes ses colonnes sont
+  visibles en même temps. Il s'ajuste tout seul à la largeur de l'écran (`js/ui-helpers.js`) : tel
+  quel s'il tient, sinon texte resserré avec retours à la ligne, et, en dernier recours sur un petit
+  téléphone, réduit pour tenir en largeur (on peut le zoomer avec deux doigts). Cela vaut aussi pour les tableaux que vous ajouterez.
+- **Même châssis partout** : rail sombre à gauche, zone de travail claire à droite,
+  identique dans l'espace agent, les retraits et l'administration.
+- **Fond photo** : une photo nette, sans flou ni voile (pirogues au coucher du soleil à
+  Douala, Unsplash). Le texte ne repose jamais directement dessus : il est posé sur une
+  carte blanche ou sur une « plaque » claire, donc lisible quelle que soit la photo. La photo
+  se charge depuis internet ; sans connexion, un dégradé bleu de la marque la remplace.
+  Pour changer de photo : `css/theme.css`, ligne `--fond-photo` (une URL, ou un fichier posé
+  dans `assets/`, par exemple `url('assets/fond.jpg')`).
+- **Typographie** : Archivo pour les titres et les chiffres, Inter pour le texte. Les
+  numéros de suivi et les montants utilisent des chiffres de largeur fixe, pour
+  s'aligner proprement en colonne dans les tableaux.
+
+---
+
+## Étape 1 — Créer la base de données (Supabase, gratuit)
+
+1. Allez sur **https://supabase.com** et créez un compte (avec Google ou un e-mail).
+2. Cliquez sur **New project**. Donnez-lui un nom, par exemple `coligo`, et un mot de passe de base de données (notez-le de côté, vous n'en aurez normalement plus besoin).
+3. Attendez 1 à 2 minutes que le projet soit prêt.
+4. Dans le menu de gauche, cliquez sur **SQL Editor**, puis **New query**.
+5. Ouvrez le fichier `sql/schema.sql` fourni dans ce dossier, copiez tout son contenu, collez-le dans la zone de Supabase, puis cliquez sur **Run**.
+   → Cela crée automatiquement les tables `colis`, `colis_historique` et `agents`, avec un agent de démonstration (`agent` / `1234`) et un colis d'exemple.
+   → Si vous aviez déjà exécuté une version précédente de ce script, relancez-le simplement : il met à jour la base sans effacer vos colis existants (ajout des rôles, de la limite de 10 administrateurs, etc.).
+
+---
+
+## Étape 2 — Connecter le site à votre base de données
+
+1. Toujours dans Supabase, allez dans **Settings** (icône en bas à gauche) puis **API**.
+2. Vous verrez deux informations :
+   - **Project URL**
+   - **anon public** (une longue clé)
+3. Ouvrez le fichier `js/config.js` fourni dans ce dossier (clic droit > Ouvrir avec > Bloc-notes, ou tout éditeur de texte).
+4. Remplacez :
+   - `COLLEZ_ICI_VOTRE_PROJECT_URL` par votre Project URL
+   - `COLLEZ_ICI_VOTRE_CLE_ANON_PUBLIC` par votre clé anon public
+   - `CHANGEZ-CE-CODE-SECRET` par un code que vous inventez (par exemple `COLIGO-2026-ACCES`). Ce code sera à donner uniquement à vos agents et responsables : sans lui, personne ne peut créer de compte.
+5. Enregistrez le fichier.
+
+---
+
+## Étape 3 — Mettre le site en ligne (gratuit, sans terminal)
+
+La méthode la plus simple, **Netlify Drop** :
+https://app.netlify.com/drop
+1. Allez sur ****
+2. Faites glisser **tout le dossier `coligo`** (celui qui contient `index.html`, `agent.html`, `css`, `js`) directement dans la page.
+3. En quelques secondes, Netlify vous donne une adresse du type `https://votre-site.netlify.app`.
+4. C'est cette adresse que vous partagez avec vos clients et vos agents. Elle fonctionne depuis un téléphone comme depuis un ordinateur, sans rien installer.
+
+Vous pouvez revenir sur cette même page à tout moment pour glisser une nouvelle version du dossier si vous modifiez quelque chose.
+
+---
+
+## Comment utiliser l'application
+
+- **Vos clients** ne reçoivent qu'un seul lien : celui de la page d'accueil (`index.html`, l'adresse Netlify elle-même, ex. `https://votre-site.netlify.app`). Cette page ne contient aucun lien vers l'espace agent ou vers la création de compte — un client ne peut pas y accéder par un simple clic.
+- **Vous (ou vos agents/responsables)** créez vos comptes vous-mêmes sur `agent.html` → « Créer un compte », en connaissant le **code d'invitation** que vous avez défini à l'étape 2. C'est la première chose à faire : il n'y a plus de compte de démonstration, vous créez directement votre propre compte réel.
+  - **Agent** : enregistre des colis et suit leur statut. En tapant le montant payé, la **valeur du colis se calcule automatiquement** (10 fois le montant payé — exemple : 1000 FCFA payés → valeur déclarée de 10 000 FCFA). Chaque colis créé et chaque changement de statut est enregistré au nom de son propre compte (identifiant).
+  - **Responsable / administrateur** : accède en plus à un onglet **Statistiques** qui affiche en temps réel le nombre total de colis, la valeur totale déclarée, le montant total encaissé, la répartition par statut, par agence et par agent, ainsi que l'historique récent de toutes les opérations. Maximum 10 comptes administrateur pour tout le système.
+
+## Garder l'espace agent hors de portée des clients
+
+- Ne partagez **jamais** l'adresse de `agent.html` ou `signup.html` avec vos clients — seulement avec vos agents et responsables, en privé (SMS, WhatsApp, etc.).
+- Le **code d'invitation** dans `js/config.js` est votre deuxième barrière : même si quelqu'un devine l'adresse de `signup.html`, il ne peut pas créer de compte sans ce code. Choisissez un code que vous seul(e) et votre équipe connaissez, et changez-le si vous pensez qu'il a fuité.
+- Ces deux pages restent techniquement accessibles à qui tape l'adresse exacte (c'est une limite des sites sans serveur), mais sans le code d'invitation, la création de compte est bloquée, et sans compte, rien n'est consultable sur `agent.html`.
+
+## Activer la mise à jour en temps réel des statistiques
+
+Le script `sql/schema.sql` active déjà la réplication temps réel pour les tables `colis` et `colis_historique`. Si l'onglet Statistiques ne se met pas à jour automatiquement, vérifiez dans Supabase : **Database > Replication**, et assurez-vous que les tables `colis` et `colis_historique` sont bien cochées dans la publication `supabase_realtime`.
+
+## Étape 1bis — Activer le code d'invitation à usage unique
+
+1. Toujours dans **SQL Editor > New query**.
+2. Ouvrez le fichier `sql/invite_code_migration.sql` fourni dans ce dossier, copiez tout son contenu, collez-le dans Supabase, puis cliquez sur **Run**.
+   → Cela crée un système où le code d'invitation change automatiquement après chaque inscription (agent ou responsable), et où seul le tableau de bord administrateur peut afficher le code actuel.
+3. Le code de départ est `2010` (celui que vous utilisiez déjà). Vous pouvez le changer à tout moment depuis Supabase : **Table Editor > invite_settings**, modifiez la colonne `code`.
+
+## Étape 1ter — Activer la messagerie interne
+
+1. Toujours dans **SQL Editor > New query**.
+2. Ouvrez `sql/messagerie_migration.sql`, copiez tout son contenu, collez-le dans Supabase, puis **Run**.
+   → Cela crée la table `messages` et active sa diffusion en temps réel, ainsi que celle de la table
+   `agents` (nécessaire pour que le code d'invitation se rafraîchisse tout seul sur le tableau de bord
+   admin dès qu'un nouvel agent s'inscrit).
+3. Sans cette étape, les boîtes de réception (agent, retraits, admin) resteront visibles mais vides,
+   et l'envoi de messages échouera.
+4. Ensuite, exécutez de la même façon `sql/messagerie_conservation_migration.sql`.
+   → Les messages ne peuvent plus être effacés depuis le site. Quand quelqu'un clique sur **Supprimer**,
+   le message disparaît seulement de **sa** boîte de réception ; l'expéditeur et les autres destinataires
+   le conservent. Tant que cette étape n'est pas faite, « Supprimer » ne masque le message que dans le
+   navigateur utilisé.
+5. **Bip sonore** : à l'arrivée d'un nouveau message, un seul bip court est joué. Les navigateurs
+   n'autorisent le son qu'après un premier clic ou toucher sur la page (par exemple le clic de connexion) :
+   si la page vient d'être rechargée, un clic n'importe où suffit à l'activer.
+
+## Étape 1quater — Activer « Mot de passe oublié ? » (gratuit, par e-mail)
+
+1. Toujours dans **SQL Editor > New query**.
+2. Ouvrez `sql/reset_password_migration.sql`, copiez tout son contenu, collez-le dans Supabase, puis **Run**.
+   → Cela ajoute une colonne `email` aux comptes, et permet à chacun (admin, agent, retrait) de
+   recevoir un code à 6 chiffres par e-mail depuis l'écran de connexion, pour choisir un nouveau
+   mot de passe sans intervention d'un administrateur.
+3. Pour que les e-mails partent réellement (sinon le code est bien créé mais reste dans la base,
+   invisible pour l'agent) :
+   - Créez un compte gratuit sur **https://resend.com** (jusqu'à 3000 e-mails/mois offerts).
+   - Copiez votre clé API (commence par `re_`).
+   - Dans Supabase, **SQL Editor > New query**, lancez (avec votre propre clé) :
+     ```sql
+     update email_settings set resend_api_key = 're_VOTRE_CLE_ICI' where id = 1;
+     ```
+4. Les comptes créés **avant** cette étape n'ont pas d'e-mail. Depuis le tableau de bord
+   administrateur, onglet **Agents**, un bouton **« Ajouter un e-mail »** apparaît sur chaque
+   compte qui n'en a pas encore — un clic suffit pour le renseigner. Les comptes créés depuis
+   `signup.html` après cette étape ont désormais un champ e-mail obligatoire, rempli dès l'inscription.
+
+---
+
+## Important à savoir sur la sécurité
+
+Pour aller vite, ce système vérifie les mots de passe directement depuis le site (pas de serveur intermédiaire). Le code d'invitation, lui, est maintenant vérifié et régénéré côté base de données (usage unique) plutôt que stocké en clair dans un fichier — c'est plus solide qu'avant. La limite qui reste : comme il n'y a pas de vraie connexion Supabase par compte, rien n'empêche techniquement, avec des outils avancés, de lire le code affiché sur le tableau de bord admin en interrogeant directement la base. Cela convient pour démarrer avec une petite équipe de confiance. Si votre activité grandit ou si des données sensibles s'accumulent, il faudra à terme mettre en place une vraie authentification Supabase (un compte = une vraie session sécurisée) pour fermer complètement cette porte. Dites-le-moi quand vous serez prêt pour cette étape, on la fera ensemble.
+
+## Si quelque chose ne fonctionne pas
+
+- Rien ne s'affiche / erreur de connexion → vérifiez que `js/config.js` contient bien votre Project URL et votre clé, sans espace ni guillemet en trop.
+- « Aucun colis ne correspond » → vérifiez que le numéro a bien été créé côté agent, et qu'il est tapé sans espace.
+- Le site Netlify affiche une page blanche → vérifiez que vous avez glissé le dossier complet (avec `css` et `js` à l'intérieur), pas seulement `index.html`.

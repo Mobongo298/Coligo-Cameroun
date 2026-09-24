@@ -1,0 +1,490 @@
+/* ==========================================================
+   COLIGO — socle visuel commun
+   ----------------------------------------------------------
+   Chargé par TOUTES les pages (index, agent, retrait, Admin,
+   signup). Contient :
+     1. les couleurs de la marque (une seule source de vérité)
+     2. le fond photo + son voile
+     3. le rail de navigation latéral (identique agent/retraits)
+     4. les réglages typographiques communs
+
+   Logo : assets/logo-coligo.png (version couleur, pour fonds
+   clairs) et assets/logo-coligo-blanc.png (version blanche, pour
+   les fonds sombres : rails, en-tête de l'accueil client).
+   Si vous changez de charte, il suffit de modifier les variables
+   ci-dessous : tout le reste de l'application suit.
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- Bleu de marque (chrome : boutons, liens, états actifs) ---- */
+  --brand-deep:   #0C3F65;   /* rails, en-têtes sombres        */
+  --brand-dark:   #14537E;   /* survol des actions             */
+  --brand:        #1D6FA8;   /* couleur d'action principale    */
+  --brand-bright: #368AC8;   /* bleu d'accent (survols, états) */
+  --brand-wash:   #E8F2F9;   /* fonds teintés légers           */
+  --brand-wash-2: #D3E6F4;
+
+  /* ---- Signalisation : ces couleurs veulent dire quelque chose ---- */
+  --st-wait:      #5B6B7F;   --st-wait-bg:   #EDF1F6;  /* Enregistré */
+  --st-move:      #0E6F94;   --st-move-bg:   #E2F1F8;  /* En transit */
+  --st-ready:     #B4690E;   --st-ready-bg:  #FDF2E2;  /* Disponible */
+  --st-done:      #15795A;   --st-done-bg:   #E5F4EF;  /* Retiré     */
+  --danger:       #B42318;   --danger-bg:    #FDECEA;
+  --ok:           #15795A;   --ok-bg:        #E5F4EF;
+  --warn:         #B4690E;   --warn-bg:      #FDF2E2;
+
+  /* ---- Neutres ---- */
+  --ink:      #14202D;
+  --ink-2:    #33455A;
+  --muted:    #64778D;
+  --line:     #DCE5EE;
+  --line-2:   #EFF3F7;
+  --surface:  #FFFFFF;
+  --canvas:   #F4F7FA;
+
+  /* ---- Ombres : une seule, déclinée par profondeur ---- */
+  --lift-1: 0 1px 2px rgba(12, 63, 101, 0.06);
+  --lift-2: 0 2px 4px rgba(12, 63, 101, 0.06), 0 8px 20px -12px rgba(12, 63, 101, 0.22);
+  --lift-3: 0 4px 10px rgba(12, 63, 101, 0.08), 0 24px 48px -24px rgba(12, 63, 101, 0.35);
+
+  --rail-w: 252px;
+
+  --font-display: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* ==========================================================
+   1. Fond photo
+   ----------------------------------------------------------
+   La photo est volontairement floutée et assombrie (voir le
+   filter ci-dessous) : elle sert d'ambiance en arrière-plan, pas
+   de visuel à regarder en détail. Pour en changer, il suffit de
+   modifier --fond-photo ci-dessous (une URL, ou un fichier posé
+   dans assets/, ex. url('assets/fond.jpg')).
+
+   La lisibilité ne dépend pas de la photo :
+     - tout le contenu repose sur des cartes blanches opaques ;
+     - les rares textes posés directement sur le fond (titres de
+       page, en-tête de l'accueil) sont portés par une « plaque »
+       claire (.photo-plate), quelle que soit la photo choisie ;
+     - si la photo ne charge pas, le dégradé bleu de la marque
+       prend le relais.
+
+   Photo actuelle : le car "VIP Transport Confort" blanc que vous avez
+   fourni, seul (assets/bus-vip-confort-fond.jpg). Floutée et assombrie
+   ci-dessous pour rester une simple ambiance de fond.
+   ========================================================== */
+
+:root {
+  --fond-photo: url('../assets/bus-vip-confort-fond.jpg');
+}
+
+.app-bg::before {
+  content: '';
+  position: fixed;
+  inset: -20px;
+  background-color: var(--brand-deep);
+  background-image:
+    var(--fond-photo),
+    linear-gradient(160deg, #0C3F65 0%, #1D6FA8 55%, #368AC8 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(3px) brightness(0.5) saturate(1.15);
+  z-index: -1;
+}
+
+/* Plaque de lisibilité : pour le texte posé directement sur la photo. */
+.photo-plate,
+header:has(> .on-photo) {
+  background: rgba(255, 255, 255, 0.90);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
+  padding: 12px 20px;
+  box-shadow: var(--lift-2);
+  width: fit-content;
+  max-width: 100%;
+}
+.photo-plate-center { margin-left: auto; margin-right: auto; }
+
+/* Texte sur plaque : couleurs franches. (Le halo blanc ne sert que de
+   secours aux navigateurs qui ne connaissent pas :has().) */
+.on-photo {
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.8);
+}
+.on-photo-sub {
+  color: var(--ink-2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.photo-plate .on-photo, .photo-plate .on-photo-sub,
+header:has(> .on-photo) .on-photo, header:has(> .on-photo) .on-photo-sub { text-shadow: none; }
+
+/* Logo COLIGO : image transparente, hauteur fixée, largeur automatique. */
+.brand-img { display: block; height: auto; width: auto; max-width: 100%; }
+.brand-img-sm { height: 26px; }
+.brand-img-md { height: 34px; }
+.brand-img-lg { height: 44px; }
+
+/* ==========================================================
+   2. Typographie
+   ========================================================== */
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.014em;
+}
+
+/* Numéros de suivi, montants, dates : chiffres de largeur fixe,
+   pour qu'ils s'alignent en colonne dans les tableaux. */
+table, .nums, input[type="number"], .numero, td, th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.numero {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ==========================================================
+   3. Rail de navigation latéral
+   ----------------------------------------------------------
+   Utilisé tel quel par agent.html et retrait.html, et repris
+   à l'identique par .admin-sidebar dans css/admin.css.
+   ========================================================== */
+
+.rail {
+  background: linear-gradient(175deg, var(--brand-deep) 0%, #08314F 100%);
+  color: #E6EFF7;
+}
+
+.rail-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+.rail-brand-sub {
+  font-size: 0.68rem;
+  color: #8FB4D2;
+  letter-spacing: 0.02em;
+}
+
+.rail-item {
+  display: flex;
+  align-items: flex-start;   /* l'icône reste alignée sur la 1re ligne
+                                quand le libellé passe sur deux lignes */
+  gap: 11px;
+  line-height: 1.35;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: 9px;
+  font-size: 0.895rem;
+  font-weight: 500;
+  color: #B9D0E4;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.rail-item:hover { background: rgba(255, 255, 255, 0.07); color: #FFFFFF; }
+.rail-item.is-active {
+  background: rgba(54, 138, 200, 0.22);
+  border-left-color: var(--brand-bright);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.rail-item svg { width: 17px; height: 17px; flex: none; opacity: 0.9; margin-top: 1px; }
+.rail-item.is-active svg { opacity: 1; }
+
+.rail-divider { border-top: 1px solid rgba(255, 255, 255, 0.13); }
+
+.rail-avatar {
+  background: var(--brand-bright);
+  color: #052033;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.rail-who-name { color: #FFFFFF; }
+.rail-who-sub  { color: #8FB4D2; }
+
+.rail-logout {
+  color: #C2D6E7;
+}
+.rail-logout:hover {
+  background: rgba(180, 35, 24, 0.24);
+  color: #FFD9D5;
+}
+
+/* ==========================================================
+   4. Détails partagés
+   ========================================================== */
+
+/* Messages d'état (utilisés par signup.js). Ils disent ce qui s'est
+   passé et comment s'en sortir : ni excuse, ni formulation vague. */
+.error-box {
+  background: var(--danger-bg); color: var(--danger);
+  border: 1px solid #F6C9C4; border-radius: 10px;
+  padding: 11px 14px; font-size: 0.88rem; margin-bottom: 14px;
+}
+.success-box {
+  background: var(--ok-bg); color: var(--ok);
+  border: 1px solid #B9E2D3; border-radius: 10px;
+  padding: 11px 14px; font-size: 0.88rem; margin-bottom: 14px;
+}
+.success-box a { color: var(--ok); font-weight: 600; text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--brand-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 13px; height: 13px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* Barres de défilement discrètes, dans le ton de l'interface. */
+/* Tableaux un peu plus denses partout : moins de risque de dépassement
+   horizontal, tout en restant lisible. */
+table { font-size: 0.86em; }
+table th, table td { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #B9C7D6 transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: #B9C7D6;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #93A6B9; background-clip: content-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================
+   5. Messagerie interne (agent.html, retrait.html, Admin.html)
+   ----------------------------------------------------------
+   Le composant est construit par js/messagerie.js et stylé ICI,
+   sans dépendre ni de Tailwind ni de admin.css : c'est ce qui le
+   rend identique dans les trois espaces.
+   ========================================================== */
+
+.msg-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.68rem; font-weight: 700;
+  margin-left: auto;
+}
+/* Sélecteur à deux classes : l'emporte toujours sur .msg-badge, quel que
+   soit l'ordre de chargement entre theme.css et le Tailwind du CDN. */
+.msg-badge.hidden { display: none; }
+
+.msg-shell { max-width: 760px; font-family: var(--font-body); color: var(--ink); }
+.msg-shell *, .msg-shell *::before, .msg-shell *::after { box-sizing: border-box; }
+.msg-shell [hidden] { display: none !important; }
+
+.msg-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--lift-2);
+  padding: 20px 22px;
+  margin: 0 0 16px;
+}
+.msg-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.02rem; font-weight: 600; line-height: 1.3;
+  color: var(--brand-deep);
+  margin: 0 0 14px;
+}
+
+/* --- Barre du haut : phrase d'aide + cloche --- */
+.msg-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.msg-intro { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--ink-2); flex: 1 1 260px; max-width: 46ch; }
+
+.msg-cloche {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--brand-deep);
+  font: 600 0.9rem var(--font-body);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.msg-cloche svg { width: 21px; height: 21px; flex: none; }
+.msg-cloche:hover { background: var(--brand-wash); }
+.msg-cloche[aria-expanded="true"] { background: var(--brand-wash); border-color: var(--brand-bright); }
+.msg-cloche-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 21px; height: 21px; padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger); color: #fff;
+  font-size: 0.72rem; font-weight: 700;
+}
+
+/* --- Boîte de réception dépliée par la cloche --- */
+.msg-boite-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.msg-boite-tete h3 { margin: 0; }
+.msg-boite-liste { max-height: min(60vh, 520px); overflow-y: auto; padding-right: 4px; }
+
+.msg-lien {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: 600 0.8rem var(--font-body); color: var(--brand);
+}
+.msg-lien:hover { text-decoration: underline; }
+
+.msg-card {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin-bottom: 10px;
+}
+.msg-card:last-child { margin-bottom: 0; }
+.msg-card.is-new { background: var(--brand-wash); border-color: var(--brand-wash-2); box-shadow: inset 4px 0 0 var(--brand-bright); }
+.msg-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+.msg-from { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 0.85rem; color: var(--brand-deep); }
+.msg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-bright); flex: none; }
+.msg-time { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.msg-content { font-size: 0.9rem; line-height: 1.5; color: var(--ink-2); white-space: pre-wrap; margin: 0 0 10px; overflow-wrap: anywhere; }
+.msg-actions { display: flex; align-items: center; gap: 16px; }
+.msg-reply, .msg-delete {
+  font: 600 0.78rem var(--font-body);
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.msg-reply { color: var(--brand); }
+.msg-delete { color: var(--danger); }
+.msg-reply:hover, .msg-delete:hover { text-decoration: underline; }
+.msg-empty { color: var(--muted); font-size: 0.88rem; padding: 18px 4px; margin: 0; }
+
+/* --- Formulaire « Nouveau message » --- */
+.msg-chip {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: var(--brand-wash); border: 1px solid var(--brand-wash-2);
+  border-radius: 10px; padding: 9px 12px; margin-bottom: 14px;
+  font-size: 0.83rem; line-height: 1.45; color: var(--ink-2);
+}
+.msg-chip strong { color: var(--brand-deep); }
+.msg-chip-annuler {
+  flex: none; background: none; border: none; cursor: pointer; padding: 0;
+  font: 600 0.78rem var(--font-body); color: var(--brand);
+}
+.msg-chip-annuler:hover { text-decoration: underline; }
+
+.msg-field { margin-bottom: 14px; }
+.msg-field-court { max-width: 380px; }
+.msg-field label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
+.msg-field select, .msg-field textarea {
+  display: block; width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px; border: 1.5px solid var(--line);
+  background: #fff; color: var(--ink);
+  font: 0.9rem var(--font-body);
+}
+.msg-field textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+.msg-field select:focus, .msg-field textarea:focus { outline: 2px solid var(--brand-bright); outline-offset: 1px; border-color: var(--brand-bright); }
+
+.msg-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 26px; border-radius: 12px; border: none; cursor: pointer;
+  background: var(--brand); color: #fff;
+  font: 600 0.9rem var(--font-body);
+  transition: background 0.15s;
+}
+.msg-btn:hover { background: var(--brand-dark); }
+.msg-btn:disabled { opacity: 0.7; cursor: default; }
+.msg-envoi-message { margin-top: 12px; }
+.msg-envoi-message:empty { margin-top: 0; }
+
+.msg-cloche:focus-visible, .msg-btn:focus-visible, .msg-lien:focus-visible,
+.msg-reply:focus-visible, .msg-delete:focus-visible, .msg-chip-annuler:focus-visible {
+  outline: 2px solid var(--brand-bright); outline-offset: 2px; border-radius: 6px;
+}
+
+.msg-error {
+  background: var(--danger-bg); color: var(--danger); border: 1px solid #F6C9C4;
+  border-radius: 9px; padding: 9px 13px; font-size: 0.85rem;
+}
+.msg-success {
+  background: var(--ok-bg); color: var(--ok); border: 1px solid #B9E2D3;
+  border-radius: 9px; padding: 9px 13px; font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .msg-panel { padding: 16px; }
+  .msg-cloche { width: 100%; justify-content: center; }
+}
+
+
+/* ==========================================================
+   Tableaux ajustés à la largeur de l'écran
+   ----------------------------------------------------------
+   Les classes tf-1 / tf-2 sont posées automatiquement par js/ui-helpers.js
+   quand un tableau est trop large (voir ce fichier pour le principe).
+   ========================================================== */
+
+/* Niveau 1 : resserré (numéros, téléphones et montants d'un seul tenant) */
+table.tf-1 { font-size: 0.8rem; }
+table.tf-1 thead th {
+  white-space: normal; padding: 7px 6px; font-size: 0.66rem; line-height: 1.25; letter-spacing: 0.02em;
+}
+table.tf-1 tbody td {
+  white-space: normal; padding: 8px 6px; vertical-align: top; line-height: 1.35; overflow-wrap: break-word;
+}
+table.tf-1 tbody td.tf-nb, table.tf-1 tbody .tf-nb { white-space: nowrap; }
+table.tf-1 .cell-desc { max-width: none; }
+table.tf-1 tbody td .badge-statut { padding: 2px 8px; font-size: 0.68rem; }
+
+/* Niveau 2 : plus serré (téléphones et montants peuvent passer sur deux lignes, entre les mots) */
+table.tf-2 { font-size: 0.76rem; }
+table.tf-2 thead th {
+  white-space: normal; padding: 6px 5px; font-size: 0.62rem; line-height: 1.2; letter-spacing: 0.01em;
+}
+table.tf-2 tbody td {
+  white-space: normal; padding: 7px 5px; vertical-align: top; line-height: 1.32; overflow-wrap: break-word;
+}
+table.tf-2 tbody td.tf-nb, table.tf-2 tbody .tf-nb { white-space: normal; }
+table.tf-2 .cell-desc { max-width: none; }
+table.tf-2 tbody td .badge-statut { padding: 2px 7px; font-size: 0.64rem; }

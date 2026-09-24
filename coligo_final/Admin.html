@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Tableau de bord administrateur</title>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body app-bg">
+
+<!-- ================= Écran de connexion ================= -->
+<div id="login-screen" class="admin-auth-screen">
+  <div class="admin-auth-box">
+    <img src="assets/logo-coligo.png" alt="COLIGO" class="brand-img brand-img-lg" style="margin-bottom:20px;">
+    <h2>Espace administrateur</h2>
+    <p class="sub">Accès réservé aux comptes administrateur.</p>
+    <div id="login-form">
+      <div class="admin-field">
+        <label>Identifiant</label>
+        <input type="text" id="login-username" placeholder="admin">
+      </div>
+      <div class="admin-field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••">
+      </div>
+      <p style="text-align:right; margin:-10px 0 16px;">
+        <a href="#" id="forgot-toggle" class="auth-link" style="font-size:0.83rem;">Mot de passe oublié ?</a>
+      </p>
+      <div id="login-error"></div>
+      <button id="btn-login" class="admin-btn admin-btn-block">Se connecter</button>
+      <p class="muted-admin" style="margin-top:16px; text-align:center; font-size:0.85rem;">Pas encore de compte ? <a href="signup.html" class="auth-link">Créer un compte</a></p>
+    </div>
+
+    <!-- ===== Réinitialisation par code e-mail (masqué par défaut) ===== -->
+    <div id="forgot-panel" class="hidden">
+      <div id="forgot-step-1">
+        <div class="admin-field">
+          <label>Identifiant</label>
+          <input type="text" id="forgot-username" placeholder="Votre identifiant">
+        </div>
+        <div id="forgot-error-1"></div>
+        <button id="btn-forgot-send" class="admin-btn admin-btn-block">Envoyer le code par e-mail</button>
+      </div>
+      <div id="forgot-step-2" class="hidden">
+        <div class="admin-info-box" id="forgot-sent-msg"></div>
+        <div class="admin-field">
+          <label>Code reçu par e-mail</label>
+          <input type="text" id="forgot-code" placeholder="123456" maxlength="6" inputmode="numeric">
+          <p style="margin:8px 0 0; text-align:right;">
+            <button type="button" id="btn-forgot-resend" class="auth-link resend-link" disabled>Renvoyer le code (25s)</button>
+          </p>
+        </div>
+        <div class="admin-field">
+          <label>Nouveau mot de passe</label>
+          <input type="password" id="forgot-new-password" placeholder="••••">
+        </div>
+        <div id="forgot-error-2"></div>
+        <button id="btn-forgot-confirm" class="admin-btn admin-btn-block">Réinitialiser le mot de passe</button>
+      </div>
+      <p style="text-align:center; margin-top:16px; font-size:0.85rem;">
+        <a href="#" id="forgot-cancel" class="auth-link">Retour à la connexion</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Écran accès refusé ================= -->
+<div id="access-denied-screen" class="admin-auth-screen hidden">
+  <div class="admin-auth-box" style="text-align:center;">
+    <h2 style="color:var(--admin-red);">Accès refusé</h2>
+    <p class="sub" id="access-denied-msg">Ce compte n'est pas un compte administrateur.</p>
+    <button id="btn-access-denied-ok" class="admin-btn admin-btn-block">Retour à la connexion</button>
+  </div>
+</div>
+
+<!-- ================= Tableau de bord ================= -->
+<div id="dashboard-shell" class="admin-shell hidden">
+
+  <div class="admin-sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="admin-sidebar" id="admin-sidebar">
+    <div class="brand">
+      <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-md">
+      <small class="rail-brand-sub">Espace administrateur</small>
+    </div>
+    <div class="admin-nav-item active" data-view="dashboard"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v4.5h-7zM13 11h7v9h-7zM4 15.5h7V20H4z"/></svg></span> Tableau de bord</div>
+    <div class="admin-nav-item" data-view="colis"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span> Rechercher un colis</div>
+    <div class="admin-nav-item" data-view="agents"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 4.2a3.5 3.5 0 0 1 0 6.6M21 20v-1.5a4 4 0 0 0-3-3.85"/></svg></span> Agents</div>
+    <div class="admin-nav-item" data-view="rapports"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="M8 20v-6M12.5 20V8.5M17 20v-9"/></svg></span> Rapports</div>
+    <div class="admin-nav-item" data-view="historique"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg></span> Historique des actions</div>
+    <div class="admin-nav-item" data-view="messagerie"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H7l-3 3z"/></svg></span> Messagerie<span class="msg-badge hidden" style="margin-left:auto;">0</span></div>
+    <div class="admin-nav-item" data-view="invitation"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3.5M15.5 12v2.5"/></svg></span> Code d'invitation</div>
+    <div class="admin-nav-item" data-view="parametres"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .33 1.78l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.78-.33 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.33l-.07.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.6 14.5 1.6 1.6 0 0 0 3.14 13.5H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.46-1.05 1.6 1.6 0 0 0-.32-1.77l-.07-.07a2 2 0 1 1 2.83-2.83l.06.06a1.6 1.6 0 0 0 1.78.33h.08A1.6 1.6 0 0 0 10 2.74V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.46 1.6 1.6 0 0 0 1.78-.32l.06-.07a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.33 1.78V9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.47 1z"/></svg></span> Paramètres</div>
+    <div class="admin-nav-item admin-nav-logout" id="btn-logout"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/></svg></span> Déconnexion</div>
+  </aside>
+
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button class="admin-menu-toggle" id="btn-menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+      <h1>Tableau de bord administrateur</h1>
+      <div class="admin-topbar-right">
+        <span class="realtime-pill" id="realtime-pill"><span class="dot"></span> Connexion temps réel active</span>
+        <button class="admin-btn small ghost hidden" id="btn-retry-realtime">Réessayer</button>
+        <div class="notif-bell" id="notif-bell" title="Colis en retard — cliquer pour voir la liste">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>
+          <span class="count hidden" id="notif-count">0</span>
+        </div>
+        <div class="admin-who">
+          <div class="name" id="admin-name">—</div>
+          <div class="role">Administrateur</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- ---------- Vue : Tableau de bord ---------- -->
+      <section class="admin-view active" id="view-dashboard">
+
+        <div class="admin-hero-row" id="stats-row">
+          <div class="table-state">Chargement des statistiques…</div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Derniers colis</h3>
+          <p class="muted-admin" style="font-size:0.8rem; margin:-6px 0 10px;">Cliquez sur une ligne pour voir le détail complet du colis.</p>
+          <div class="admin-table-wrap"><table class="admin-table" id="table-derniers-colis">
+            <thead><tr>
+              <th>Tracking</th><th>Expéditeur</th><th>Destinataire</th><th>Téléphone</th>
+              <th>Destination</th><th>Agence</th><th>Description</th><th>Statut</th><th>Date</th><th>Agent</th>
+            </tr></thead>
+            <tbody><tr><td colspan="10" class="table-state">Chargement…</td></tr></tbody>
+          </table></div>
+        </div>
+
+      </section>
+
+      <!-- ---------- Vue : Colis ---------- -->
+      <section class="admin-view" id="view-colis">
+        <h2 class="view-title">Rechercher un colis</h2>
+
+        <div class="admin-card">
+          <div class="filter-bar">
+            <div class="f-group"><label>Recherche</label><input type="text" id="cf-search" placeholder="Tracking, nom, téléphone"></div>
+            <div class="f-group"><label>Statut</label>
+              <select id="cf-statut"><option value="">Tous</option></select>
+            </div>
+            <div class="f-group"><label>Agence</label>
+              <select id="cf-agence"><option value="">Toutes</option></select>
+            </div>
+            <div class="f-group"><label>Agent</label>
+              <select id="cf-agent"><option value="">Tous</option></select>
+            </div>
+            <div class="f-group"><label>Destination</label><input type="text" id="cf-destination" placeholder="Ville"></div>
+            <div class="f-group"><label>Du</label><input type="date" id="cf-date-from"></div>
+            <div class="f-group"><label>Au</label><input type="date" id="cf-date-to"></div>
+            <div class="f-group"><label>Tri</label>
+              <select id="cf-sort">
+                <option value="desc">Plus récent d'abord</option>
+                <option value="asc">Plus ancien d'abord</option>
+              </select>
+            </div>
+            <button class="admin-btn small" id="btn-apply-filters">Filtrer</button>
+            <button class="admin-btn small ghost" id="btn-reset-filters">Réinitialiser</button>
+          </div>
+
+          <p class="muted-admin" style="font-size:0.8rem; margin:12px 0 4px;">Cliquez sur une ligne pour voir le détail complet du colis.</p>
+          <div class="admin-table-wrap"><table class="admin-table" id="table-colis">
+            <thead><tr>
+              <th>Tracking</th><th>Expéditeur</th><th>Destinataire</th><th>Téléphone</th>
+              <th>Destination</th><th>Agence</th><th>Description</th><th>Montant</th><th>Statut</th><th>Date</th><th>Agent</th>
+            </tr></thead>
+            <tbody><tr><td colspan="11" class="table-state">Chargement…</td></tr></tbody>
+          </table></div>
+
+          <div class="pagination-bar">
+            <div class="info" id="colis-pagination-info">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- Vue : Agents ---------- -->
+      <section class="admin-view" id="view-agents">
+        <h2 class="view-title">Agents</h2>
+        <div class="admin-card">
+          <div class="admin-table-wrap"><table class="admin-table" id="table-agents">
+            <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Agence</th><th>Statut</th><th>Depuis</th></tr></thead>
+            <tbody><tr><td colspan="5" class="table-state">Chargement…</td></tr></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ---------- Vue : Rapports ---------- -->
+      <section class="admin-view" id="view-rapports">
+        <h2 class="view-title">Rapports</h2>
+        <div id="rapports-zone"><div class="table-state">Chargement…</div></div>
+      </section>
+
+      <!-- ---------- Vue : Historique des actions ---------- -->
+      <section class="admin-view" id="view-historique">
+        <h2 class="view-title">Historique des actions</h2>
+        <div class="admin-card">
+          <h3>Rechercher dans l'historique</h3>
+          <div class="filter-bar">
+            <div class="f-group"><label>Agent</label><select id="hf-agent"><option value="">Tous</option></select></div>
+            <div class="f-group"><label>Tracking</label><input type="text" id="hf-tracking" placeholder="DLA000001/26"></div>
+            <button class="admin-btn small" id="btn-historique-filter">Rechercher</button>
+          </div>
+          <p class="muted-admin" style="font-size:0.82rem; margin:2px 0 14px;">
+            Regroupé par numéro de listing. Les entrées sans listing (colis pas encore imprimés dans un
+            envoi groupé) apparaissent à part, en bas.
+          </p>
+          <div id="historique-zone"><div class="table-state">Chargement…</div></div>
+        </div>
+      </section>
+
+      <!-- ---------- Vue : Messagerie ---------- -->
+      <section class="admin-view" id="view-messagerie">
+        <h2 class="view-title">Messagerie</h2>
+        <!-- Interface construite par js/messagerie.js : identique dans l'espace admin, agent et retrait -->
+        <div id="msg-root"></div>
+      </section>
+
+      <!-- ---------- Vue : Code d'invitation ---------- -->
+      <section class="admin-view" id="view-invitation">
+        <h2 class="view-title">Code d'invitation</h2>
+        <div class="admin-card">
+          <h3>Code actuel</h3>
+          <p id="invite-code-box" class="muted-admin">Chargement…</p>
+          <button class="admin-btn small ghost" id="btn-refresh-invite">Actualiser maintenant</button>
+          <p class="muted-admin" style="margin-top:12px; font-size:0.82rem;">
+            À communiquer au prochain agent ou responsable à inscrire sur <a href="signup.html">signup.html</a>.
+            Il devient automatiquement invalide dès qu'il a servi une fois, et le code affiché ici se
+            met à jour tout seul dès qu'un nouvel agent s'inscrit — le bouton ci-dessus reste utile en
+            secours si la connexion temps réel est momentanément coupée.
+          </p>
+        </div>
+      </section>
+
+      <!-- ---------- Vue : Paramètres (compte) ---------- -->
+      <section class="admin-view" id="view-parametres">
+        <h2 class="view-title">Paramètres</h2>
+
+        <div class="admin-card">
+          <h3>Mon compte</h3>
+          <div class="modal-grid">
+            <div><div class="k">Nom</div><div class="v" id="param-nom">—</div></div>
+            <div><div class="k">Identifiant</div><div class="v" id="param-username">—</div></div>
+            <div><div class="k">Agence</div><div class="v" id="param-agence">—</div></div>
+            <div><div class="k">Rôle</div><div class="v">Administrateur</div></div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Modifier mon mot de passe</h3>
+          <div class="filter-bar" style="align-items:flex-start;">
+            <div class="f-group"><label>Mot de passe actuel</label><input type="password" id="pw-actuel"></div>
+            <div class="f-group"><label>Nouveau mot de passe</label><input type="password" id="pw-nouveau"></div>
+            <div class="f-group"><label>Confirmer</label><input type="password" id="pw-confirme"></div>
+            <button class="admin-btn small" id="btn-change-pw">Enregistrer</button>
+          </div>
+          <div id="pw-message"></div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Session</h3>
+          <p class="muted-admin" style="font-size:0.85rem; margin-bottom:12px;">
+            La déconnexion efface entièrement vos informations de connexion sur cet appareil.
+          </p>
+          <button class="admin-btn small danger" id="btn-logout-param">Se déconnecter</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal lecture seule (détail colis) ================= -->
+<div class="admin-modal-backdrop hidden" id="modal-backdrop">
+  <div class="admin-modal" id="modal-content"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/config.js"></script>
+<script src="js/reset-password.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/messagerie.js"></script>
+</body>
+</html>
