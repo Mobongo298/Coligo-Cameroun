@@ -31,11 +31,11 @@ function initials(nom) {
 // ---------- Session ----------
 
 function getSession() {
-  const raw = sessionStorage.getItem('coliexpress_agent');
+  const raw = sessionStorage.getItem('coligo_agent_session');
   return raw ? JSON.parse(raw) : null;
 }
-function setSession(agent) { sessionStorage.setItem('coliexpress_agent', JSON.stringify(agent)); }
-function clearSession() { sessionStorage.removeItem('coliexpress_agent'); }
+function setSession(agent) { sessionStorage.setItem('coligo_agent_session', JSON.stringify(agent)); }
+function clearSession() { sessionStorage.removeItem('coligo_agent_session'); }
 
 // villeArriveePour() vient maintenant de js/receipt.js (chargé avant ce fichier).
 
@@ -123,17 +123,15 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
   setBtnLoading(btn, 'Connexion…');
 
-  const { data: agent, error } = await supabaseClient
-    .from('agents')
-    .select('*')
-    .eq('username', username)
-    .eq('password', password)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.rpc('agent_login', {
+    p_username: username, p_password: password
+  });
 
   clearBtnLoading(btn);
 
   if (error) { errorZone.innerHTML = msgError('Impossible de contacter la base de données.'); return; }
-  if (!agent) { errorZone.innerHTML = msgError('Identifiant ou mot de passe incorrect.'); return; }
+  if (!data || !data.ok) { errorZone.innerHTML = msgError((data && data.message) || 'Identifiant ou mot de passe incorrect.'); return; }
+  const agent = data.agent;
 
   // Un compte administrateur est redirigé vers son propre espace.
   if (!enforceRole(agent, 'agent')) return;
@@ -155,8 +153,8 @@ document.getElementById('btn-logout').addEventListener('click', () => {
     // Efface toute trace de connexion : rien n'est conservé, il faudra
     // ressaisir identifiant et mot de passe pour se reconnecter.
     sessionStorage.clear();
-    localStorage.removeItem('coliexpress_agent');
-    localStorage.removeItem('coliexpress_admin');
+    localStorage.removeItem('coligo_agent_session');
+    localStorage.removeItem('coligo_admin_session');
     colisCache = [];
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';

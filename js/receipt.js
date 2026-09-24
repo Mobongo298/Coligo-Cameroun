@@ -85,7 +85,7 @@ async function marquerPresence(agentId, enLigne) {
 function activerDeconnexionALaFermeture() {
   window.addEventListener('pagehide', () => {
     try {
-      const raw = sessionStorage.getItem('coliexpress_agent');
+      const raw = sessionStorage.getItem('coligo_agent_session');
       if (!raw) return; // déjà déconnecté via le bouton
       const a = JSON.parse(raw);
       fetch(`${SUPABASE_URL}/rest/v1/agents?id=eq.${encodeURIComponent(a.id)}`, {
@@ -105,7 +105,7 @@ function activerDeconnexionALaFermeture() {
   window.addEventListener('pageshow', (e) => {
     if (!e.persisted) return;
     try {
-      const raw = sessionStorage.getItem('coliexpress_agent');
+      const raw = sessionStorage.getItem('coligo_agent_session');
       if (raw) marquerPresence(JSON.parse(raw).id, true);
     } catch (err) { /* silencieux */ }
   });

@@ -67,9 +67,9 @@ const MSG_ICONE_CLOCHE =
   '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 
 function msgWho() {
-  const admin = sessionStorage.getItem('coliexpress_admin');
+  const admin = sessionStorage.getItem('coligo_admin_session');
   if (admin) { const a = JSON.parse(admin); return { type: 'admin', username: a.username, nom: a.nom_complet || a.username }; }
-  const agent = sessionStorage.getItem('coliexpress_agent');
+  const agent = sessionStorage.getItem('coligo_agent_session');
   if (agent) { const a = JSON.parse(agent); return { type: 'agent', username: a.username, nom: a.nom_complet }; }
   return null;
 }
@@ -338,7 +338,7 @@ function msgBip() {
 
 // ---------- Lu / non lu (mémorisé dans ce navigateur) ----------
 
-function msgCleLus() { return 'coliexpress_msg_lus_' + msgMoi.type + '_' + msgMoi.username; }
+function msgCleLus() { return 'coligo_msg_lus_' + msgMoi.type + '_' + msgMoi.username; }
 function msgLireLus() {
   try { return new Set(JSON.parse(localStorage.getItem(msgCleLus()) || '[]')); }
   catch (e) { return new Set(); }

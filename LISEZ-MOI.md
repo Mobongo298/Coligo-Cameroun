@@ -140,9 +140,36 @@ Le script `sql/schema.sql` active déjà la réplication temps réel pour les ta
 
 ---
 
+## Étape 1quinquies — Sécuriser les mots de passe (à faire, une seule fois)
+
+1. Toujours dans **SQL Editor > New query**.
+2. Ouvrez `sql/securite_mots_de_passe_migration.sql`, copiez tout, collez, **Run**.
+   → Tous les mots de passe existants sont automatiquement convertis en mots de passe
+   hachés (bcrypt) — personne n'a besoin de changer le sien. À partir de maintenant,
+   la connexion, l'inscription, le changement de mot de passe et « mot de passe
+   oublié » passent tous par des fonctions côté base de données : **le mot de passe
+   ne transite plus jamais en clair entre le site et la base**, et il n'est plus
+   comparé depuis le navigateur.
+   → Bonus inclus : après **5 tentatives de connexion échouées** sur un même
+   identifiant, le compte est verrouillé 15 minutes.
+3. Peut être exécuté avant ou après `sql/reset_password_migration.sql`, l'ordre n'a
+   pas d'importance.
+
 ## Important à savoir sur la sécurité
 
-Pour aller vite, ce système vérifie les mots de passe directement depuis le site (pas de serveur intermédiaire). Le code d'invitation, lui, est maintenant vérifié et régénéré côté base de données (usage unique) plutôt que stocké en clair dans un fichier — c'est plus solide qu'avant. La limite qui reste : comme il n'y a pas de vraie connexion Supabase par compte, rien n'empêche techniquement, avec des outils avancés, de lire le code affiché sur le tableau de bord admin en interrogeant directement la base. Cela convient pour démarrer avec une petite équipe de confiance. Si votre activité grandit ou si des données sensibles s'accumulent, il faudra à terme mettre en place une vraie authentification Supabase (un compte = une vraie session sécurisée) pour fermer complètement cette porte. Dites-le-moi quand vous serez prêt pour cette étape, on la fera ensemble.
+Les mots de passe sont maintenant hachés et jamais comparés depuis le navigateur — la
+faille la plus critique est corrigée. Il reste une limite structurelle à connaître :
+ce système utilise sa propre table `agents` pour l'authentification plutôt que le
+système de comptes intégré de Supabase (Supabase Auth). Concrètement, cela veut dire
+qu'un visiteur qui interrogerait directement votre base avec des outils avancés (en
+dehors du site) pourrait, selon la configuration exacte des règles d'accès (RLS) de
+chaque table, potentiellement lire ou modifier des données sans passer par les écrans
+de connexion — même s'il ne pourra plus jamais lire ni deviner un mot de passe, ni se
+connecter comme un compte existant. Cela convient pour démarrer avec une petite équipe
+de confiance. Si votre activité grandit, ou avant de vendre/déployer cette plateforme
+chez un client, il est recommandé de migrer vers une vraie authentification Supabase
+(un compte = une vraie session sécurisée, avec des règles RLS vérifiables automatiquement
+par table). Dites-le-moi quand vous serez prêt pour cette étape, on la fera ensemble.
 
 ## Si quelque chose ne fonctionne pas
 

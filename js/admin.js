@@ -60,11 +60,11 @@ function esc(s) {
 // ---------- Session administrateur (séparée de la session agent) ----------
 
 function getSession() {
-  const raw = sessionStorage.getItem('coliexpress_admin');
+  const raw = sessionStorage.getItem('coligo_admin_session');
   return raw ? JSON.parse(raw) : null;
 }
-function setSession(admin) { sessionStorage.setItem('coliexpress_admin', JSON.stringify(admin)); }
-function clearSession() { sessionStorage.removeItem('coliexpress_admin'); }
+function setSession(admin) { sessionStorage.setItem('coligo_admin_session', JSON.stringify(admin)); }
+function clearSession() { sessionStorage.removeItem('coligo_admin_session'); }
 
 function showScreen(id) {
   ['login-screen', 'access-denied-screen', 'dashboard-shell'].forEach(s => {
@@ -107,12 +107,9 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
   setBtnLoading(btn, 'Connexion…');
 
-  const { data: account, error } = await supabaseClient
-    .from('agents')
-    .select('*')
-    .eq('username', username)
-    .eq('password', password)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.rpc('agent_login', {
+    p_username: username, p_password: password
+  });
 
   clearBtnLoading(btn);
 
@@ -120,10 +117,11 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     errorZone.innerHTML = '<div class="admin-error-box">Impossible de contacter la base de données.</div>';
     return;
   }
-  if (!account) {
-    errorZone.innerHTML = '<div class="admin-error-box">Identifiants incorrects.</div>';
+  if (!data || !data.ok) {
+    errorZone.innerHTML = `<div class="admin-error-box">${(data && data.message) || 'Identifiants incorrects.'}</div>`;
     return;
   }
+  const account = data.agent;
 
   // Vérification réelle du rôle : un compte agent classique reste sur
   // place, avec un message d'accès refusé — pas de redirection silencieuse.
@@ -816,22 +814,22 @@ document.getElementById('btn-change-pw').addEventListener('click', async () => {
     zone.innerHTML = '<div class="admin-error-box">Le nouveau mot de passe doit contenir au moins 4 caractères.</div>';
     return;
   }
-  if (actuel !== a.password) {
-    zone.innerHTML = '<div class="admin-error-box">Le mot de passe actuel est incorrect.</div>';
-    return;
-  }
 
   setBtnLoading(btn, 'Enregistrement…');
-  const { error } = await supabaseClient.from('agents').update({ password: nouveau }).eq('id', a.id);
+  const { data, error } = await supabaseClient.rpc('change_own_password', {
+    p_username: a.username, p_ancien: actuel, p_nouveau: nouveau
+  });
   clearBtnLoading(btn);
 
   if (error) {
     zone.innerHTML = '<div class="admin-error-box">Modification impossible pour le moment. Réessayez.</div>';
     return;
   }
+  if (!data || !data.ok) {
+    zone.innerHTML = `<div class="admin-error-box">${(data && data.message) || 'Le mot de passe actuel est incorrect.'}</div>`;
+    return;
+  }
 
-  a.password = nouveau;
-  setSession(a);
   ['pw-actuel', 'pw-nouveau', 'pw-confirme'].forEach(id => document.getElementById(id).value = '');
   zone.innerHTML = '<div class="admin-success-box">Mot de passe modifié. Il sera demandé à votre prochaine connexion.</div>';
 });
@@ -842,8 +840,8 @@ function deconnexionComplete() {
   if (realtimeChannel) { supabaseClient.removeChannel(realtimeChannel); realtimeChannel = null; }
   if (typeof msgChannel !== 'undefined' && msgChannel) { supabaseClient.removeChannel(msgChannel); msgChannel = null; }
   sessionStorage.clear();
-  localStorage.removeItem('coliexpress_admin');
-  localStorage.removeItem('coliexpress_agent');
+  localStorage.removeItem('coligo_admin_session');
+  localStorage.removeItem('coligo_agent_session');
 
   colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map();
   Object.keys(viewLoaded).forEach(k => viewLoaded[k] = false);

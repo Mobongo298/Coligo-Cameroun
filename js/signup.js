@@ -33,68 +33,24 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
   const btn = document.getElementById('btn-signup');
   setBtnLoading(btn, 'Création du compte…');
 
-  // Limite de 10 comptes administrateur pour tout le système.
-  if (role === 'administrateur') {
-    const { count } = await supabaseClient
-      .from('agents')
-      .select('*', { count: 'exact', head: true })
-      .eq('role', 'administrateur');
-
-    if ((count || 0) >= 10) {
-      errorZone.innerHTML = '<div class="error-box">Le nombre maximum de comptes administrateur (10) est déjà atteint.</div>';
-      clearBtnLoading(btn);
-      return;
-    }
-  }
-
-  // L'identifiant doit être unique.
-  const { data: dejaExistant } = await supabaseClient
-    .from('agents')
-    .select('id')
-    .eq('username', username)
-    .maybeSingle();
-
-  if (dejaExistant) {
-    errorZone.innerHTML = '<div class="error-box">Cet identifiant est déjà utilisé. Choisissez-en un autre.</div>';
-    clearBtnLoading(btn);
-    return;
-  }
-
-  // Vérification du code d'invitation, en base de données : s'il est
-  // correct, il est immédiatement remplacé par un nouveau code (usage
-  // unique). Rien n'est encore créé à ce stade.
-  const { data: codeValide, error: codeError } = await supabaseClient.rpc(
-    'verify_and_rotate_invite',
-    { code_saisi: invite }
-  );
-
-  if (codeError) {
-    errorZone.innerHTML = '<div class="error-box">Impossible de vérifier le code d\'invitation pour le moment. Réessayez.</div>';
-    clearBtnLoading(btn);
-    return;
-  }
-  if (!codeValide) {
-    errorZone.innerHTML = '<div class="error-box">Code d\'invitation invalide. Demandez le code actuel à un administrateur.</div>';
-    clearBtnLoading(btn);
-    return;
-  }
-
-  // Le code est valide et vient d'être régénéré : on crée maintenant le compte.
-  const { error: insertError } = await supabaseClient
-    .from('agents')
-    .insert({
-      nom_complet: nom,
-      agence: agence,
-      role: role,
-      username: username,
-      email: email,
-      password: password
-    });
+  const { data, error } = await supabaseClient.rpc('agent_signup', {
+    p_nom: nom,
+    p_agence: agence,
+    p_role: role,
+    p_username: username,
+    p_email: email,
+    p_password: password,
+    p_invite: invite
+  });
 
   clearBtnLoading(btn);
 
-  if (insertError) {
-    errorZone.innerHTML = '<div class="error-box">Le code a été accepté mais la création du compte a échoué. Contactez un administrateur pour obtenir un nouveau code.</div>';
+  if (error) {
+    errorZone.innerHTML = '<div class="error-box">Impossible de créer le compte pour le moment. Réessayez.</div>';
+    return;
+  }
+  if (!data || !data.ok) {
+    errorZone.innerHTML = `<div class="error-box">${(data && data.message) || 'Impossible de créer le compte.'}</div>`;
     return;
   }
 

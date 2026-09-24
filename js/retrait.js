@@ -20,11 +20,11 @@ function badge(s) {
 // ---------- Session (partagée avec agent.html) ----------
 
 function getSession() {
-  const raw = sessionStorage.getItem('coliexpress_agent');
+  const raw = sessionStorage.getItem('coligo_agent_session');
   return raw ? JSON.parse(raw) : null;
 }
-function setSession(a) { sessionStorage.setItem('coliexpress_agent', JSON.stringify(a)); }
-function clearSession() { sessionStorage.removeItem('coliexpress_agent'); }
+function setSession(a) { sessionStorage.setItem('coligo_agent_session', JSON.stringify(a)); }
+function clearSession() { sessionStorage.removeItem('coligo_agent_session'); }
 
 function initiales(nom) {
   return (nom || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -145,12 +145,14 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   if (!username || !password) { errorZone.innerHTML = msgError("Renseignez l'identifiant et le mot de passe."); return; }
 
   setBtnLoading(btn, 'Connexion…');
-  const { data: agent, error } = await supabaseClient
-    .from('agents').select('*').eq('username', username).eq('password', password).maybeSingle();
+  const { data, error } = await supabaseClient.rpc('agent_login', {
+    p_username: username, p_password: password
+  });
   clearBtnLoading(btn);
 
   if (error) { errorZone.innerHTML = msgError('Impossible de contacter la base de données.'); return; }
-  if (!agent) { errorZone.innerHTML = msgError('Identifiant ou mot de passe incorrect.'); return; }
+  if (!data || !data.ok) { errorZone.innerHTML = msgError((data && data.message) || 'Identifiant ou mot de passe incorrect.'); return; }
+  const agent = data.agent;
   if (!enforceRole(agent, 'agent')) return;
 
   setSession(agent);
