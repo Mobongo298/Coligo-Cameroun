@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Suivi de colis</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        coligo: {
+          DEFAULT: '#1D6FA8', dark: '#14537E', light: '#E8F2F9',
+          deep: '#0C3F65', bright: '#368AC8'
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Segoe UI', 'system-ui', 'sans-serif']
+      }
+    } }
+  }
+</script>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  /* Espace client : le texte repose directement sur la photo de fond,
+     sans plaque blanche derrière. On passe donc en texte clair avec une
+     ombre portée sombre, pour rester lisible sur un fond flouté/assombri. */
+  .client-page .on-photo {
+    color: #ffffff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(0, 0, 0, 0.5);
+  }
+  .client-page .on-photo-sub {
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  }
+  .client-page .brand-name { color: #ffffff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
+  .client-page .brand-sub { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
+</style>
+</head>
+<body class="app-bg client-page font-sans text-slate-800 min-h-screen">
+
+<header class="px-4 lg:px-8 py-4">
+  <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-lg" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
+</header>
+
+<main class="px-4 lg:px-8 pb-16 max-w-3xl mx-auto">
+
+  <section class="text-center my-8 lg:my-12">
+    <h1 class="text-3xl lg:text-5xl font-bold mb-4 on-photo tracking-tight">Où en est votre colis&nbsp;?</h1>
+    <p class="max-w-lg mx-auto on-photo-sub">
+      Entrez votre numéro de suivi pour afficher votre reçu et connaître le statut de votre colis, en temps réel.
+    </p>
+  </section>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-5 lg:p-6 mb-6">
+    <label class="block text-sm text-slate-600 mb-2" for="numero-input">Numéro de suivi</label>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <input id="numero-input" type="text" placeholder="Ex : DLA000001/26" autocomplete="off"
+        class="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-coligo">
+      <button id="btn-search"
+        class="bg-coligo hover:bg-coligo-dark text-white font-semibold px-7 py-3 rounded-xl transition whitespace-nowrap">
+        Rechercher
+      </button>
+    </div>
+    <div id="error-zone" class="mt-3"></div>
+  </div>
+
+  <div id="result-zone"></div>
+
+  <p class="text-center text-xs mt-12 on-photo-sub">
+    COLIGO · suivi de colis en temps réel
+  </p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/config.js"></script>
+<script src="js/client.js"></script>
+</body>
+</html>

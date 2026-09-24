@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Retraits de colis</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        coligo: {
+          DEFAULT: '#1D6FA8', dark: '#14537E', light: '#E8F2F9',
+          deep: '#0C3F65', bright: '#368AC8'
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Segoe UI', 'system-ui', 'sans-serif']
+      }
+    } }
+  }
+</script>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="app-bg font-sans text-slate-800 min-h-screen">
+
+<!-- ===================== ÉCRAN DE CONNEXION ===================== -->
+<div id="login-screen" class="admin-auth-screen">
+  <div class="admin-auth-box">
+    <img src="assets/logo-coligo.png" alt="COLIGO" class="brand-img brand-img-lg" style="margin-bottom:20px;">
+    <h2>Espace retrait</h2>
+    <p class="sub">Accès réservé aux comptes retrait.</p>
+    <div id="login-form">
+      <div class="admin-field">
+        <label>Identifiant</label>
+        <input type="text" id="login-username" placeholder="Votre identifiant">
+      </div>
+      <div class="admin-field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••">
+      </div>
+      <p style="text-align:right; margin:-10px 0 16px;">
+        <a href="#" id="forgot-toggle" class="auth-link" style="font-size:0.83rem;">Mot de passe oublié ?</a>
+      </p>
+      <div id="login-error"></div>
+      <button id="btn-login" class="admin-btn admin-btn-block">Se connecter</button>
+      <p class="muted-admin" style="margin-top:16px; text-align:center; font-size:0.85rem;">Pas encore de compte ? <a href="signup.html" class="auth-link">Créer un compte</a></p>
+    </div>
+
+    <!-- ===== Réinitialisation par code e-mail (masqué par défaut) ===== -->
+    <div id="forgot-panel" class="hidden">
+      <div id="forgot-step-1">
+        <div class="admin-field">
+          <label>Identifiant</label>
+          <input type="text" id="forgot-username" placeholder="Votre identifiant">
+        </div>
+        <div id="forgot-error-1"></div>
+        <button id="btn-forgot-send" class="admin-btn admin-btn-block">Envoyer le code par e-mail</button>
+      </div>
+      <div id="forgot-step-2" class="hidden">
+        <div class="admin-info-box" id="forgot-sent-msg"></div>
+        <div class="admin-field">
+          <label>Code reçu par e-mail</label>
+          <input type="text" id="forgot-code" placeholder="123456" maxlength="6" inputmode="numeric">
+          <p style="margin:8px 0 0; text-align:right;">
+            <button type="button" id="btn-forgot-resend" class="auth-link resend-link" disabled>Renvoyer le code (25s)</button>
+          </p>
+        </div>
+        <div class="admin-field">
+          <label>Nouveau mot de passe</label>
+          <input type="password" id="forgot-new-password" placeholder="••••">
+        </div>
+        <div id="forgot-error-2"></div>
+        <button id="btn-forgot-confirm" class="admin-btn admin-btn-block">Réinitialiser le mot de passe</button>
+      </div>
+      <p style="text-align:center; margin-top:16px; font-size:0.85rem;">
+        <a href="#" id="forgot-cancel" class="auth-link">Retour à la connexion</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ESPACE RETRAITS ===================== -->
+<div id="dashboard-screen" class="hidden">
+
+  <!-- Barre mobile -->
+  <div class="lg:hidden flex items-center justify-between bg-coligo-deep px-4 py-3 sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-sm">
+      <div class="rail-brand-sub pl-3 border-l border-white/25">Retraits de colis</div>
+    </div>
+    <button onclick="toggleMenu()" class="text-2xl text-white px-2" aria-label="Ouvrir le menu">☰</button>
+  </div>
+
+  <div class="flex min-h-screen">
+
+    <!-- ---------- RAIL DE NAVIGATION ---------- -->
+    <aside id="sidebar"
+           class="rail hidden lg:flex flex-col w-[252px] shrink-0 p-4 overflow-y-auto
+                  fixed lg:sticky inset-x-0 top-[57px] lg:top-0 z-30
+                  max-h-[calc(100vh-57px)] lg:max-h-none lg:h-screen">
+
+      <div class="hidden lg:flex items-center gap-2.5 px-2 pt-1 pb-7">
+        <div>
+          <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-md">
+          <div class="rail-brand-sub mt-2">Retraits de colis</div>
+        </div>
+      </div>
+
+      <nav class="space-y-1 flex-1">
+        <button onclick="show('retrait-colis')" data-nav="retrait-colis" class="rail-item is-active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/><path d="m8.5 5.7 7 4"/></svg>
+          Retrait de colis
+        </button>
+        <button onclick="show('retraits')" data-nav="retraits" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 9.5 17.5 4 12"/></svg>
+          Historique des colis retirés
+        </button>
+        <button onclick="show('listings')" data-nav="listings" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9.5 12.5h6M9.5 16h4"/></svg>
+          Historique des listings reçus
+        </button>
+        <button onclick="show('opposee')" data-nav="opposee" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg>
+          <span id="nav-opposee-label">Colis enregistrés à l'agence</span>
+        </button>
+        <button onclick="show('messagerie')" data-nav="messagerie" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H7l-3 3z"/></svg>
+          Messagerie
+          <span class="msg-badge hidden">0</span>
+        </button>
+      </nav>
+
+      <div class="rail-divider pt-4 mt-4">
+        <div class="flex items-center gap-3 mb-3 px-1">
+          <div id="agent-initials" class="rail-avatar w-9 h-9 rounded-full grid place-items-center text-sm shrink-0">—</div>
+          <div class="min-w-0">
+            <div id="agent-nom" class="rail-who-name text-sm font-semibold truncate">—</div>
+            <div id="agent-agence-rail" class="rail-who-sub text-xs truncate">—</div>
+          </div>
+        </div>
+        <button id="btn-logout" class="rail-item rail-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/></svg>
+          Se déconnecter
+        </button>
+      </div>
+    </aside>
+
+    <!-- ---------- CONTENU ---------- -->
+    <main class="flex-1 min-w-0 p-4 lg:p-8 max-w-6xl">
+
+      <header class="mb-6">
+        <h1 id="page-titre" class="text-2xl lg:text-3xl font-bold on-photo">Retrait de colis</h1>
+        <p class="text-sm mt-1 on-photo-sub">
+          Agence de <strong id="agent-agence">—</strong> · <span id="page-desc">réceptionnez un listing, puis remettez les colis à leurs destinataires.</span>
+        </p>
+      </header>
+
+      <!-- ======= VUES (chaque entrée du rail affiche uniquement son propre espace) ======= -->
+
+      <div>
+
+        <!-- Vue 0 : retrait de colis (recherche + remise au destinataire) -->
+        <section id="section-retrait-colis" class="view-r">
+          <!-- Réception d'un listing complet -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 mb-5" style="box-shadow: var(--lift-2);">
+            <h2 class="font-semibold text-coligo-deep mb-1">Réceptionner un listing</h2>
+            <p class="text-xs text-slate-500 mb-4 max-w-2xl">
+              Saisissez le numéro inscrit sur la feuille remise par le chauffeur. Tous les colis du listing
+              passent à « Disponible » en une seule opération.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <input id="listing-input" type="text" placeholder="N°0001 DLA" autocomplete="off"
+                class="w-48 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm numero focus:outline-none focus:ring-2 focus:ring-coligo-bright">
+              <button id="btn-listing-disponible"
+                class="bg-coligo hover:bg-coligo-dark text-white font-semibold px-6 py-2.5 rounded-xl transition whitespace-nowrap text-sm">
+                Marquer disponible
+              </button>
+            </div>
+            <div id="listing-message" class="mt-3"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 mb-5" style="box-shadow: var(--lift-2);">
+            <h2 class="font-semibold text-coligo-deep mb-1">Remettre un colis</h2>
+            <label class="block text-xs text-slate-500 mb-3" for="recherche-input">
+              Numéro de suivi, ou téléphone du destinataire.
+            </label>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input id="recherche-input" type="text" placeholder="YDE000001/26 ou 690…" autocomplete="off"
+                class="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-sm numero focus:outline-none focus:ring-2 focus:ring-coligo-bright">
+              <button id="btn-rechercher"
+                class="bg-coligo hover:bg-coligo-dark text-white font-semibold px-7 py-3 rounded-xl transition whitespace-nowrap">
+                Rechercher
+              </button>
+            </div>
+            <div id="recherche-erreur" class="mt-3"></div>
+          </div>
+
+          <div id="resultat-zone"></div>
+        </section>
+
+        <!-- Vue 1 : colis retirés -->
+        <section id="section-retraits" class="view-r hidden">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6" style="box-shadow: var(--lift-2);">
+            <div class="flex items-center justify-between gap-3 mb-1">
+              <h2 class="font-semibold text-coligo-deep">Historique des colis retirés</h2>
+              <button id="btn-refresh-historique" class="text-sm px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition">
+                Actualiser
+              </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">Les 100 derniers retraits traités par votre agence.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-[0.7rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                    <th class="pb-2.5 pr-3 font-semibold">Retiré le</th>
+                    <th class="pb-2.5 pr-3 font-semibold">N° Suivi</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Destinataire</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Retiré par</th>
+                    <th class="pb-2.5 pr-3 font-semibold">CNI présenté</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Description</th>
+                    <th class="pb-2.5 font-semibold">Montant</th>
+                  </tr>
+                </thead>
+                <tbody id="historique-body" class="divide-y divide-slate-100">
+                  <tr><td colspan="7" class="py-8 text-center text-slate-400">Chargement…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vue 2 : listings reçus -->
+        <section id="section-listings" class="view-r hidden">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6" style="box-shadow: var(--lift-2);">
+            <div class="flex items-center justify-between gap-3 mb-1">
+              <h2 class="font-semibold text-coligo-deep">Historique des listings reçus</h2>
+              <button id="btn-refresh-listings-recus" class="text-sm px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition">
+                Actualiser
+              </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4 max-w-2xl">
+              Tous les listings envoyés vers votre agence. « Réimprimer » produit une copie à l'identique
+              et ne modifie aucun statut.
+            </p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-[0.7rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                    <th class="pb-2.5 pr-3 font-semibold">N° Listing</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Type</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Colis</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Imprimé le</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Agence d'origine</th>
+                    <th class="pb-2.5 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="listings-recus-body" class="divide-y divide-slate-100">
+                  <tr><td colspan="6" class="py-8 text-center text-slate-400">Chargement…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vue 3 : colis enregistrés en face -->
+        <section id="section-opposee" class="view-r hidden">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6" style="box-shadow: var(--lift-2);">
+            <h2 class="font-semibold text-coligo-deep mb-1">
+              Colis enregistrés à <span id="agence-opposee-nom">l'agence opposée</span>
+            </h2>
+            <p class="text-xs text-slate-500 mb-4 max-w-2xl">
+              Colis tout juste enregistrés là-bas, pas encore partis dans un listing. Chacun disparaît
+              de cette liste dès qu'il est imprimé et passe « En transit ».
+            </p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-[0.7rem] uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                    <th class="pb-2.5 pr-3 font-semibold">N° Suivi</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Destinataire</th>
+                    <th class="pb-2.5 pr-3 font-semibold">Description</th>
+                    <th class="pb-2.5 font-semibold">Enregistré le</th>
+                  </tr>
+                </thead>
+                <tbody id="colis-opposee-body" class="divide-y divide-slate-100">
+                  <tr><td colspan="4" class="py-8 text-center text-slate-400">Chargement…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vue 4 : messagerie -->
+        <section id="section-messagerie" class="view-r hidden">
+          <!-- Interface construite par js/messagerie.js : identique dans l'espace admin, agent et retrait -->
+          <div id="msg-root"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/config.js"></script>
+<script src="js/reset-password.js"></script>
+<script src="js/retrait.js"></script>
+<script src="js/messagerie.js"></script>
+</body>
+</html>

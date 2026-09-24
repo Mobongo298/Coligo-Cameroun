@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Créer un compte</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        coligo: {
+          DEFAULT: '#1D6FA8', dark: '#14537E', light: '#E8F2F9',
+          deep: '#0C3F65', bright: '#368AC8'
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Segoe UI', 'system-ui', 'sans-serif']
+      }
+    } }
+  }
+</script>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  .fld label { display: block; font-size: 0.85rem; color: #33455A; margin-bottom: 6px; }
+  .fld input, .fld select {
+    width: 100%; padding: 10px 13px;
+    border: 1.5px solid #DCE5EE; border-radius: 9px;
+    font-size: 0.93rem; font-family: inherit; background: #fff; color: #14202D;
+  }
+  .fld input:focus, .fld select:focus {
+    outline: none; border-color: #368AC8; box-shadow: 0 0 0 3px rgba(54,138,200,0.16);
+  }
+  .fld .hint { font-size: 0.76rem; color: #64778D; margin-top: 6px; }
+</style>
+</head>
+<body class="app-bg font-sans text-slate-800 min-h-screen">
+
+<header class="px-4 lg:px-8 py-4 flex items-center justify-between gap-3">
+  <div class="photo-plate">
+    <img src="assets/logo-coligo.png" alt="COLIGO" class="brand-img brand-img-md">
+  </div>
+  <a href="agent.html" class="text-sm font-medium text-coligo-deep bg-white/90 border border-slate-200 px-4 py-2 rounded-lg hover:bg-white transition">
+    Se connecter
+  </a>
+</header>
+
+<main class="px-4 pb-16 max-w-md mx-auto">
+
+  <div class="bg-white rounded-2xl border border-slate-200 p-7 lg:p-8 mt-4" style="box-shadow: var(--lift-3);">
+    <h1 class="text-2xl font-bold text-coligo-deep mb-2">Créer un compte</h1>
+    <p class="text-sm text-slate-500 mb-7">
+      Chaque compte a son propre identifiant. Toutes vos opérations seront enregistrées à ce nom.
+    </p>
+
+    <div class="space-y-4">
+      <div class="fld">
+        <label for="s-nom">Nom complet</label>
+        <input type="text" id="s-nom">
+      </div>
+
+      <div class="fld">
+        <label for="s-agence">Agence</label>
+        <select id="s-agence">
+          <option value="Yaoundé">Yaoundé</option>
+          <option value="Douala">Douala</option>
+        </select>
+        <p class="hint">Détermine le préfixe de vos numéros de suivi : YDE… ou DLA…</p>
+      </div>
+
+      <div class="fld">
+        <label for="s-role">Type de compte</label>
+        <select id="s-role">
+          <option value="agent">Agent — enregistre et suit les colis</option>
+          <option value="administrateur">Responsable — consulte les statistiques</option>
+        </select>
+        <p class="hint">Maximum 10 comptes responsable pour tout le système.</p>
+      </div>
+
+      <div class="fld">
+        <label for="s-username">Identifiant</label>
+        <input type="text" id="s-username" autocomplete="off">
+      </div>
+
+      <div class="fld">
+        <label for="s-email">E-mail</label>
+        <input type="email" id="s-email" autocomplete="off" placeholder="vous@exemple.com">
+        <p class="hint">Sert uniquement à recevoir un code si vous oubliez votre mot de passe.</p>
+      </div>
+
+      <div class="fld">
+        <label for="s-password">Mot de passe</label>
+        <input type="password" id="s-password">
+      </div>
+
+      <div class="fld">
+        <label for="s-password2">Confirmer le mot de passe</label>
+        <input type="password" id="s-password2">
+      </div>
+
+      <div class="fld">
+        <label for="s-invite">Code d'invitation</label>
+        <input type="text" id="s-invite" placeholder="Fourni par votre responsable">
+        <p class="hint">
+          À usage unique : il change automatiquement après chaque inscription. Un responsable
+          voit le code en cours sur son tableau de bord.
+        </p>
+      </div>
+
+      <div id="signup-error"></div>
+      <div id="signup-success"></div>
+
+      <button id="btn-signup"
+        class="w-full bg-coligo hover:bg-coligo-dark text-white font-semibold px-6 py-3 rounded-xl transition">
+        Créer mon compte
+      </button>
+
+      <p class="text-center text-sm text-slate-500 pt-1">
+        Vous avez déjà un compte ? <a href="agent.html" class="text-coligo font-medium hover:underline">Connectez-vous</a>
+      </p>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/config.js"></script>
+<script src="js/signup.js"></script>
+<script>
+</script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Espace agent</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        coligo: {
+          DEFAULT: '#1D6FA8', dark: '#14537E', light: '#E8F2F9',
+          deep: '#0C3F65', bright: '#368AC8'
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Segoe UI', 'system-ui', 'sans-serif']
+      }
+    } }
+  }
+</script>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/auth.css">
+<style>
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body class="app-bg font-sans text-slate-800 min-h-screen">
+
+<!-- ===================== ÉCRAN DE CONNEXION ===================== -->
+<div id="login-screen" class="admin-auth-screen">
+  <div class="admin-auth-box">
+    <img src="assets/logo-coligo.png" alt="COLIGO" class="brand-img brand-img-lg" style="margin-bottom:20px;">
+    <h2>Espace agent</h2>
+    <p class="sub">Accès réservé aux comptes agent.</p>
+    <div id="login-form">
+      <div class="admin-field">
+        <label>Identifiant</label>
+        <input type="text" id="login-username" placeholder="agent">
+      </div>
+      <div class="admin-field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••">
+      </div>
+      <p style="text-align:right; margin:-10px 0 16px;">
+        <a href="#" id="forgot-toggle" class="auth-link" style="font-size:0.83rem;">Mot de passe oublié ?</a>
+      </p>
+      <div id="login-error"></div>
+      <button id="btn-login" class="admin-btn admin-btn-block">Se connecter</button>
+      <p class="muted-admin" style="margin-top:16px; text-align:center; font-size:0.85rem;">Pas encore de compte ? <a href="signup.html" class="auth-link">Créer un compte</a></p>
+    </div>
+
+    <!-- ===== Réinitialisation par code e-mail (masqué par défaut) ===== -->
+    <div id="forgot-panel" class="hidden">
+      <div id="forgot-step-1">
+        <div class="admin-field">
+          <label>Identifiant</label>
+          <input type="text" id="forgot-username" placeholder="Votre identifiant">
+        </div>
+        <div id="forgot-error-1"></div>
+        <button id="btn-forgot-send" class="admin-btn admin-btn-block">Envoyer le code par e-mail</button>
+      </div>
+      <div id="forgot-step-2" class="hidden">
+        <div class="admin-info-box" id="forgot-sent-msg"></div>
+        <div class="admin-field">
+          <label>Code reçu par e-mail</label>
+          <input type="text" id="forgot-code" placeholder="123456" maxlength="6" inputmode="numeric">
+          <p style="margin:8px 0 0; text-align:right;">
+            <button type="button" id="btn-forgot-resend" class="auth-link resend-link" disabled>Renvoyer le code (25s)</button>
+          </p>
+        </div>
+        <div class="admin-field">
+          <label>Nouveau mot de passe</label>
+          <input type="password" id="forgot-new-password" placeholder="••••">
+        </div>
+        <div id="forgot-error-2"></div>
+        <button id="btn-forgot-confirm" class="admin-btn admin-btn-block">Réinitialiser le mot de passe</button>
+      </div>
+      <p style="text-align:center; margin-top:16px; font-size:0.85rem;">
+        <a href="#" id="forgot-cancel" class="auth-link">Retour à la connexion</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TABLEAU DE BORD ===================== -->
+<div id="dashboard-screen" class="hidden">
+
+  <!-- Barre mobile -->
+  <div class="lg:hidden flex items-center justify-between bg-coligo-deep px-4 py-3 sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-sm">
+      <div class="rail-brand-sub pl-3 border-l border-white/25">Espace agent</div>
+    </div>
+    <button onclick="toggleMenu()" class="text-2xl text-white px-2" aria-label="Ouvrir le menu">&#9776;</button>
+  </div>
+
+  <div class="flex min-h-screen">
+
+    <!-- ---------- RAIL DE NAVIGATION ---------- -->
+    <aside id="sidebar"
+           class="rail hidden lg:flex flex-col w-[252px] shrink-0 p-4 overflow-y-auto
+                  fixed lg:sticky inset-x-0 top-[57px] lg:top-0 z-30
+                  max-h-[calc(100vh-57px)] lg:max-h-none lg:h-screen">
+
+      <div class="hidden lg:flex items-center gap-2.5 px-2 pt-1 pb-7">
+        <div>
+          <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-md">
+          <div class="rail-brand-sub mt-2">Espace agent</div>
+        </div>
+      </div>
+
+      <nav class="space-y-1 flex-1">
+        <button onclick="show('dashboard')" data-nav="dashboard" class="rail-item is-active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v4.5h-7zM13 11h7v9h-7zM4 15.5h7V20H4z"/></svg>
+          Tableau de bord
+        </button>
+        <button onclick="show('enregistrer')" data-nav="enregistrer" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M12 9.5v5M9.5 12h5"/></svg>
+          Enregistrer un colis
+        </button>
+        <button onclick="show('suivi')" data-nav="suivi" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          Mes colis &amp; Suivi
+        </button>
+        <button onclick="afficherHistoriqueListings()" data-nav="listings" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9.5 12.5h6M9.5 16h4"/></svg>
+          Historique des listings
+        </button>
+        <button onclick="show('messagerie')" data-nav="messagerie" class="rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H7l-3 3z"/></svg>
+          Messagerie
+          <span class="msg-badge hidden">0</span>
+        </button>
+      </nav>
+
+      <div class="rail-divider pt-4 mt-4">
+        <div class="flex items-center gap-3 mb-3 px-1">
+          <div id="agent-initials" class="rail-avatar w-9 h-9 rounded-full grid place-items-center text-sm shrink-0">&mdash;</div>
+          <div class="min-w-0">
+            <div id="agent-nom" class="rail-who-name text-sm font-semibold truncate">&mdash;</div>
+            <div id="agent-agence" class="rail-who-sub text-xs truncate">&mdash;</div>
+          </div>
+        </div>
+        <button id="btn-logout" class="rail-item rail-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/></svg>
+          Se déconnecter
+        </button>
+      </div>
+    </aside>
+
+    <!-- Contenu -->
+    <main class="flex-1 min-w-0 p-4 lg:p-8 max-w-6xl">
+
+      <!-- ---------- VUE 1 : TABLEAU DE BORD ---------- -->
+      <section id="view-dashboard" class="view active">
+        <header class="mb-6">
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Aperçu du jour</h1>
+          <p class="text-sm mt-1 on-photo-sub"><span id="header-agence">—</span> · <span id="today-date"></span></p>
+        </header>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 border-t-4 border-coligo">
+            <div id="stat-today" class="text-3xl font-bold text-coligo">—</div>
+            <div class="text-sm text-slate-600 mt-1">Colis enregistrés aujourd'hui par vous</div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 border-t-4 border-amber-500">
+            <div id="stat-attente" class="text-3xl font-bold text-amber-600">—</div>
+            <div class="text-sm text-slate-600 mt-1">En attente à votre agence</div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 border-t-4 border-sky-500">
+            <div id="stat-alivrer" class="text-3xl font-bold text-sky-600">—</div>
+            <div class="text-sm text-slate-600 mt-1">À livrer (disponibles pour retrait)</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 mb-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-1">
+            <h2 class="font-semibold">Bouteilles de gaz (BG) en attente d'impression</h2>
+            <button id="btn-print-bg" class="bg-coligo hover:bg-coligo-dark text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition" disabled>
+              Imprimer le listing
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mb-4">Colis dont la description contient "BG". L'impression fait passer tous ces colis au statut En transit.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                <th class="pb-2 pr-3 font-medium">N° Suivi</th><th class="pb-2 pr-3 font-medium">Destinataire</th><th class="pb-2 font-medium">Description</th>
+              </tr></thead>
+              <tbody id="table-bg"><tr><td colspan="3" class="py-4 text-center text-slate-500 text-sm">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 mb-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-1">
+            <h2 class="font-semibold">Colis enregistrés en attente d'impression</h2>
+            <button id="btn-print-bulk" class="bg-coligo hover:bg-coligo-dark text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition" disabled>
+              Imprimer le listing
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mb-4">Tous les colis enregistrés, hors bouteilles de gaz. L'impression fait passer tous ces colis au statut En transit.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                <th class="pb-2 pr-3 font-medium">N° Suivi</th><th class="pb-2 pr-3 font-medium">Destinataire</th><th class="pb-2 font-medium">Description</th>
+              </tr></thead>
+              <tbody id="table-bulk"><tr><td colspan="3" class="py-4 text-center text-slate-500 text-sm">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+          <h2 class="font-semibold mb-4">Tous vos enregistrements, regroupés par jour</h2>
+          <div id="registre-list" class="space-y-5">
+            <p class="py-4 text-sm text-slate-500">Chargement…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VUE 2 : ENREGISTRER UN COLIS ---------- -->
+      <section id="view-enregistrer" class="view">
+        <header class="mb-6">
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Enregistrer un colis</h1>
+          <p class="text-sm mt-1 on-photo-sub">Remplissez les trois blocs, puis validez l'enregistrement.</p>
+        </header>
+
+        <div class="space-y-4 max-w-3xl">
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+            <h2 class="font-semibold mb-4 text-coligo">Expéditeur</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm text-slate-600 mb-1" for="f-expediteur">Nom complet</label>
+                <input id="f-expediteur" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Ex : Jean Mbarga">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-600 mb-1" for="f-expediteur-tel">Téléphone</label>
+                <input id="f-expediteur-tel" type="tel" value="+237 " class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-600 mb-1">Ville de départ</label>
+                <div id="f-depart-affichage" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 font-medium">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+            <h2 class="font-semibold mb-4 text-coligo">Destinataire</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm text-slate-600 mb-1" for="f-destinataire">Nom complet</label>
+                <input id="f-destinataire" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Ex : Paul Etame">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-600 mb-1" for="f-destinataire-tel">Téléphone</label>
+                <input id="f-destinataire-tel" type="tel" value="+237 " class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-600 mb-1">Ville d'arrivée</label>
+                <div id="f-arrivee-affichage" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 font-medium">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+            <h2 class="font-semibold mb-4 text-coligo">Détails du colis</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm text-slate-600 mb-1" for="f-montant">Montant payé (FCFA)</label>
+                <input id="f-montant" type="number" min="0" step="500" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="2000">
+              </div>
+              <div class="bg-coligo-light rounded-lg px-4 py-3">
+                <div class="text-xs text-slate-600">Valeur déclarée du colis</div>
+                <div id="valeur-preview-amount" class="font-bold text-coligo-dark">0 FCFA</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Calcul automatique : 10 × le montant payé</div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1" for="description">Description du contenu</label>
+              <input id="description" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="Ex : 3 cartons de pièces détachées, 1 sac de vêtements">
+              <p class="text-xs text-slate-500 mt-1">Décrivez précisément le contenu : c'est ce qui permet d'identifier le colis en cas de litige.</p>
+            </div>
+          </div>
+
+          <div id="new-error"></div>
+          <div id="new-success"></div>
+
+          <button id="btn-create"
+            class="w-full sm:w-auto bg-coligo hover:bg-coligo-dark text-white font-semibold px-6 py-3 rounded-xl transition">
+            Enregistrer le colis
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- VUE 3 : MES COLIS & SUIVI ---------- -->
+      <section id="view-suivi" class="view">
+        <header class="mb-6">
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Mes colis &amp; Suivi</h1>
+          <p class="text-sm mt-1 on-photo-sub">Colis enregistrés depuis votre agence.</p>
+        </header>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <div id="s-transit" class="text-2xl font-bold text-sky-600">—</div><div class="text-xs text-slate-600 mt-1">En transit</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <div id="s-retire" class="text-2xl font-bold text-coligo">—</div><div class="text-xs text-slate-600 mt-1">Retiré</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <div id="s-attente" class="text-2xl font-bold text-amber-600">—</div><div class="text-xs text-slate-600 mt-1">En attente</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <div id="s-retard" class="text-2xl font-bold text-red-600">—</div><div class="text-xs text-slate-600 mt-1">Retard (&gt;3 j)</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+          <div class="flex flex-col sm:flex-row gap-3 mb-5">
+            <input id="search-tel" type="text" placeholder="Rechercher par téléphone, nom ou numéro de suivi"
+              class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm">
+            <select id="filter-statut" class="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
+              <option value="">Tous les statuts</option>
+            </select>
+            <button id="btn-refresh" class="px-4 py-2 rounded-lg border border-slate-300 text-sm hover:bg-slate-50 transition">
+              Actualiser
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                  <th class="pb-2 pr-3 font-medium">N° Suivi</th>
+                  <th class="pb-2 pr-3 font-medium">Expéditeur</th>
+                  <th class="pb-2 pr-3 font-medium">Destination</th>
+                  <th class="pb-2 pr-3 font-medium">Description</th>
+                  <th class="pb-2 pr-3 font-medium">Statut</th>
+                  <th class="pb-2 font-medium">Montant</th>
+                </tr>
+              </thead>
+              <tbody id="table-body" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="py-8 text-center text-slate-500">Chargement…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VUE 4 : HISTORIQUE DES LISTINGS ---------- -->
+      <section id="view-listings" class="view">
+        <header class="mb-6">
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Historique des listings</h1>
+          <p class="text-sm mt-1 on-photo-sub">Tous les listings imprimés par votre agence. La réimpression ne change aucun statut.</p>
+        </header>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                  <th class="pb-2 pr-3 font-medium">N° Listing</th>
+                  <th class="pb-2 pr-3 font-medium">Type</th>
+                  <th class="pb-2 pr-3 font-medium">Colis</th>
+                  <th class="pb-2 pr-3 font-medium">Imprimé le</th>
+                  <th class="pb-2 pr-3 font-medium">Par</th>
+                  <th class="pb-2 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="table-listings">
+                <tr><td colspan="6" class="py-8 text-center text-slate-500">Chargement…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VUE 5 : MESSAGERIE ---------- -->
+      <section id="view-messagerie" class="view">
+        <header class="mb-6">
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Messagerie</h1>
+        </header>
+        <!-- Interface construite par js/messagerie.js : identique dans l'espace admin, agent et retrait -->
+        <div id="msg-root"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODALES ===================== -->
+<div id="modal-backdrop" class="hidden fixed inset-0 bg-slate-900/45 z-50 flex items-center justify-center p-4">
+  <div id="modal-content" class="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[88vh] overflow-y-auto shadow-2xl"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ui-helpers.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/config.js"></script>
+<script src="js/reset-password.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/messagerie.js"></script>
+</body>
+</html>

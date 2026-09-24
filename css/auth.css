@@ -1,0 +1,96 @@
+/* ==========================================================
+   COLIGO — Écran de connexion partagé (agent.html, retrait.html)
+   ----------------------------------------------------------
+   Reprend l'apparence exacte de l'écran de connexion de
+   Admin.html (css/admin.css), mais isolé dans son propre
+   fichier pour ne pas importer les règles globales de
+   admin.css (comme .hidden en !important) qui entrent en
+   conflit avec les classes responsives Tailwind du menu
+   (rail) de agent.html et retrait.html.
+   ========================================================== */
+
+.admin-auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.admin-auth-box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 34px 30px;
+  width: 100%;
+  max-width: 390px;
+  box-shadow: var(--lift-3);
+}
+.admin-auth-box h2 {
+  margin: 0 0 6px;
+  color: var(--brand-deep);
+  font-size: 1.45rem;
+}
+.admin-auth-box p.sub { color: var(--muted); margin: 0 0 24px; font-size: 0.92rem; }
+
+.admin-field { margin-bottom: 16px; }
+.admin-field label {
+  display: block; margin-bottom: 6px;
+  font-size: 0.85rem; color: var(--ink-2); font-weight: 500;
+}
+.admin-field input, .admin-field select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+.admin-field input:focus, .admin-field select:focus {
+  outline: none;
+  border-color: var(--brand-bright);
+  box-shadow: 0 0 0 3px rgba(54, 138, 200, 0.16);
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 18px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 42px;
+  transition: background 0.15s;
+}
+.admin-btn:hover { background: var(--brand-dark); }
+.admin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.admin-btn-block { width: 100%; }
+
+.admin-error-box {
+  background: var(--danger-bg); color: var(--danger); border: 1px solid #F6C9C4;
+  border-radius: 9px; padding: 10px 13px; font-size: 0.88rem; margin-bottom: 14px;
+}
+
+.muted-admin { color: var(--muted); }
+
+.auth-link { color: var(--brand); text-decoration: none; font-weight: 500; }
+.auth-link:hover { color: var(--brand-dark); text-decoration: underline; }
+
+.resend-link {
+  background: none; border: none; padding: 0; margin: 0;
+  font-family: inherit; font-size: 0.83rem; cursor: pointer;
+}
+.resend-link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
+.admin-info-box {
+  background: var(--brand-wash); color: var(--brand-deep); border: 1px solid var(--brand-wash-2);
+  border-radius: 9px; padding: 10px 13px; font-size: 0.88rem; margin-bottom: 14px;
+}
