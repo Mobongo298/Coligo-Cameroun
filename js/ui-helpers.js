@@ -158,3 +158,71 @@ function clearBtnLoading(btn) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
   else demarrer();
 })();
+
+// ==========================================================
+// Afficher / masquer le mot de passe (icône "œil")
+// ----------------------------------------------------------
+// S'applique automatiquement à TOUS les champs type="password"
+// présents sur la page, sans avoir à modifier chaque écran.
+// ==========================================================
+(function () {
+  const EYE_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.27 21.27 0 0 1 5.06-6.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a21.27 21.27 0 0 1-3.22 4.34M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  function wrapOne(input) {
+    if (input.dataset.pwToggled) return;
+    input.dataset.pwToggled = '1';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'pw-field';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-toggle';
+    btn.setAttribute('aria-label', 'Afficher le mot de passe');
+    btn.tabIndex = -1;
+    btn.innerHTML = EYE_OPEN;
+    wrapper.appendChild(btn);
+
+    btn.addEventListener('click', () => {
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.innerHTML = showing ? EYE_OPEN : EYE_OFF;
+      btn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+    });
+  }
+
+  function scan() {
+    document.querySelectorAll('input[type="password"]').forEach(wrapOne);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+  else scan();
+
+  // Certains champs (ex. dans une fenêtre modale) peuvent être injectés après coup.
+  new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+// ==========================================================
+// Champs numériques stricts (code, montant, téléphone)
+// ----------------------------------------------------------
+// class="digits-only" → uniquement des chiffres (0-9).
+// class="phone-only"  → chiffres, espaces et un "+" en tête (format téléphone).
+// Fonctionne aussi sur les champs ajoutés dynamiquement (fenêtres modales),
+// et bloque aussi bien la saisie clavier que le collage de texte.
+// ==========================================================
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== 'INPUT') return;
+
+  if (el.classList.contains('digits-only')) {
+    const clean = el.value.replace(/[^0-9]/g, '');
+    if (clean !== el.value) el.value = clean;
+  } else if (el.classList.contains('phone-only')) {
+    let clean = el.value.replace(/[^0-9+ ]/g, '');
+    if (clean.length) clean = clean[0] + clean.slice(1).replace(/\+/g, '');
+    if (clean !== el.value) el.value = clean;
+  }
+});

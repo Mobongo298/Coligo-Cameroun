@@ -4,7 +4,7 @@
 // Messagerie interne, partagée À L'IDENTIQUE par agent.html,
 // retrait.html et Admin.html : chaque page ne fournit qu'un
 // conteneur vide <div id="msg-root"></div>, et toute l'interface
-// (nouveau message, cloche, boîte de réception, bouton Répondre)
+// (liste des discussions + conversation ouverte, façon WhatsApp)
 // est construite ici. Un seul code = trois espaces identiques.
 //
 // Table réelle : messages (voir sql/messagerie_migration.sql et
@@ -14,57 +14,85 @@
 //
 // Règles de circulation (appliquées ici, côté application) :
 //   - Un agent peut écrire à un autre agent ou à un administrateur précis.
-//     Sa boîte de réception reçoit les messages des autres agents ET les
-//     messages/diffusions envoyés par un administrateur.
+//     Il reçoit les messages des autres agents ET les diffusions envoyées
+//     par un administrateur ("Tous les agents" — lecture seule, un agent
+//     ne peut pas y écrire, il doit ouvrir une discussion directe avec
+//     l'administrateur concerné).
 //   - Un administrateur écrit à un agent précis, à tous les agents
-//     ('tous'), ou à un autre administrateur. Sa boîte de réception
-//     reçoit les messages des agents qui lui écrivent directement ET
-//     ceux des autres administrateurs.
+//     ('tous'), ou à un autre administrateur.
 //
 // Conservation des discussions :
 //   - Les messages ne sont JAMAIS effacés de la table `messages` par le site.
-//   - « Supprimer » retire le message de MA boîte de réception seulement :
-//     on enregistre « ce message est masqué pour moi » dans la table
-//     `messages_masques` (voir sql/messagerie_conservation_migration.sql).
-//     L'expéditeur et les autres destinataires (cas d'une diffusion « tous
-//     les agents ») le gardent dans leur boîte.
-//   - Chaque utilisateur ne peut donc supprimer que ce qui est dans SA boîte.
+//   - « Supprimer » (icône sur une bulle) retire CE message de MA vue
+//     seulement : on enregistre « ce message est masqué pour moi » dans la
+//     table `messages_masques` (voir sql/messagerie_conservation_migration.sql).
+//     L'autre personne le conserve dans sa propre discussion.
 //
-// Bip sonore : quand un nouveau message arrive (temps réel), un seul bip
-// court est joué, qui s'arrête net (voir msgBip).
+// Bip sonore : quand un nouveau message arrive (temps réel) et que la
+// discussion n'est pas déjà ouverte à l'écran, un seul bip bref est joué.
 //
 // Messages « non lus » : la base n'a pas de colonne « lu ». On mémorise
 // donc, dans le navigateur (localStorage), les identifiants des messages
-// déjà consultés dans la cloche. Le compteur rouge = messages jamais ouverts
+// déjà consultés. Le badge de chaque discussion = messages jamais ouverts
 // depuis ce navigateur.
 // ==========================================================
 
 function msgEsc(s) {
   return (s === null || s === undefined) ? '' : String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
-function msgDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+function msgHeure(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+function msgJourLabel(iso) {
+  const d = new Date(iso);
+  const auj = new Date();
+  const hier = new Date(); hier.setDate(auj.getDate() - 1);
+  const meme = (a, b) => a.toDateString() === b.toDateString();
+  if (meme(d, auj)) return "Aujourd'hui";
+  if (meme(d, hier)) return 'Hier';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: d.getFullYear() !== auj.getFullYear() ? 'numeric' : undefined });
 }
 function msgEl(id) { return document.getElementById(id); }
 
-let msgMoi = null;            // { type: 'admin'|'agent', username, nom }
-let msgAgentsListe = [];      // agents pouvant recevoir un message
-let msgAdminsListe = [];      // autres administrateurs
-let msgInbox = [];            // messages reçus
-let msgChannel = null;
-let msgBoiteOuverte = false;  // la cloche est-elle dépliée ?
-let msgSurlignes = new Set(); // messages « nouveaux » à mettre en évidence pendant que la boîte est ouverte
-let msgReponseA = null;       // message auquel on est en train de répondre
-let msgMasques = new Set();   // identifiants des messages que J'AI supprimés de ma boîte
-let msgLimite = 200;          // nombre de messages affichés (extensible avec « Afficher plus »)
-let msgAPlus = false;         // y a-t-il des messages plus anciens non affichés ?
-let msgIdsConnus = new Set(); // messages déjà vus dans cette session (pour repérer les nouveaux)
+// Initiale(s) pour l'avatar rond, et une couleur stable dérivée du nom.
+function msgInitiales(nom) {
+  const mots = String(nom || '?').trim().split(/\s+/).filter(Boolean);
+  if (!mots.length) return '?';
+  return (mots[0][0] + (mots[1] ? mots[1][0] : '')).toUpperCase();
+}
+const MSG_PALETTE = ['#368AC8', '#4CAF7D', '#B4884D', '#8E6FC9', '#D4756B', '#3D9C9C', '#6B8E4E'];
+function msgCouleur(cle) {
+  let h = 0;
+  for (let i = 0; i < cle.length; i++) h = (h * 31 + cle.charCodeAt(i)) >>> 0;
+  return MSG_PALETTE[h % MSG_PALETTE.length];
+}
+
+let msgMoi = null;              // { type: 'admin'|'agent', username, nom }
+let msgContacts = new Map();    // 'agent:username' | 'admin:username' -> { nom_complet, agence, role }
+let msgTous = [];               // toutes mes conversations (envoyés + reçus), à plat
+let msgMasques = new Set();     // identifiants des messages que J'AI masqués
+let msgIdsConnus = new Set();   // messages déjà vus dans cette session (repérer les nouveaux -> bip)
 let msgPremierChargement = true;
+let msgChannel = null;
+let msgConvOuverte = null;      // clé de la conversation actuellement ouverte ('agent:x', 'admin:x', 'tous')
 
 const MSG_ICONE_CLOCHE =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+const MSG_ICONE_PLUS =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+const MSG_ICONE_RETOUR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+const MSG_ICONE_ENVOYER =
+  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.2 21 12 3 3.8v6.4L15 12 3 13.8v6.4Z"/></svg>';
+const MSG_ICONE_FERMER =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>';
+const MSG_ICONE_SUPPR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+const MSG_ICONE_ENVOYE =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const MSG_ICONE_VIDE =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 
 function msgWho() {
   const admin = sessionStorage.getItem('coligo_admin_session');
@@ -82,177 +110,93 @@ function msgConstruireInterface() {
   root.dataset.pret = '1';
 
   root.innerHTML = `
-    <div class="msg-shell">
-      <div class="msg-panel msg-toolbar">
-        <p class="msg-intro">Écrivez à un collègue ou à l'administration. Vos messages reçus se consultent avec la cloche, et vous pouvez y répondre directement. Ils restent dans votre boîte tant que vous ne les supprimez pas vous-même.</p>
-        <button type="button" id="msg-cloche" class="msg-cloche" aria-expanded="false" aria-controls="msg-boite">
-          ${MSG_ICONE_CLOCHE}
-          <span>Boîte de réception</span>
-          <span id="msg-cloche-count" class="msg-cloche-count" hidden>0</span>
-        </button>
-      </div>
+    <div class="msg-shell" id="msg-shell">
+      <aside class="msg-sidebar">
+        <div class="msg-sidebar-head">
+          <h3>Messagerie</h3>
+          <button type="button" id="msg-nouvelle-btn" class="msg-nouvelle-btn" title="Nouvelle discussion" aria-label="Nouvelle discussion">${MSG_ICONE_PLUS}</button>
+        </div>
+        <div id="msg-conv-liste" class="msg-conv-liste"><p class="msg-conv-empty">Chargement…</p></div>
+      </aside>
 
-      <section id="msg-boite" class="msg-panel msg-boite" hidden aria-label="Messages reçus">
-        <div class="msg-boite-tete">
-          <h3>Messages reçus</h3>
-          <button type="button" id="msg-boite-fermer" class="msg-lien">Fermer</button>
+      <section class="msg-thread" id="msg-thread">
+        <div class="msg-thread-vide" id="msg-thread-vide">
+          ${MSG_ICONE_VIDE}
+          <p>Choisissez une discussion, ou démarrez-en une nouvelle.</p>
         </div>
-        <div id="msg-liste" class="msg-boite-liste"><p class="msg-empty">Chargement…</p></div>
-      </section>
 
-      <section id="msg-nouveau" class="msg-panel">
-        <h3>Nouveau message</h3>
-        <div id="msg-reponse-chip" class="msg-chip" hidden></div>
-        <div class="msg-field msg-field-court">
-          <label for="msg-destinataire">Destinataire</label>
-          <select id="msg-destinataire"><option value="">Choisir…</option></select>
+        <div id="msg-thread-ouverte" hidden style="display:contents;">
+          <div class="msg-thread-head">
+            <button type="button" id="msg-retour" class="msg-retour" aria-label="Retour aux discussions">${MSG_ICONE_RETOUR}</button>
+            <div class="msg-avatar" id="msg-thread-avatar"></div>
+            <div>
+              <div class="msg-thread-nom" id="msg-thread-nom"></div>
+              <div class="msg-thread-sous" id="msg-thread-sous"></div>
+            </div>
+          </div>
+          <div class="msg-bulles" id="msg-bulles"></div>
+          <div id="msg-lecture-seule" class="msg-lecture-seule" hidden></div>
+          <div id="msg-thread-erreur" class="msg-thread-erreur" hidden></div>
+          <div class="msg-saisie" id="msg-saisie">
+            <textarea id="msg-texte" rows="1" placeholder="Écrivez un message…"></textarea>
+            <button type="button" id="msg-envoyer" class="msg-envoyer-btn" aria-label="Envoyer">${MSG_ICONE_ENVOYER}</button>
+          </div>
         </div>
-        <div class="msg-field">
-          <label for="msg-texte">Message</label>
-          <textarea id="msg-texte" rows="6" placeholder="Votre message…"></textarea>
-        </div>
-        <button type="button" id="msg-envoyer" class="msg-btn">Envoyer</button>
-        <div id="msg-envoi-message" class="msg-envoi-message"></div>
       </section>
     </div>`;
 
-  msgEl('msg-cloche').addEventListener('click', () => msgBasculerBoite());
-  msgEl('msg-boite-fermer').addEventListener('click', () => msgBasculerBoite(false));
+  msgEl('msg-nouvelle-btn').addEventListener('click', msgOuvrirNouvelle);
+  msgEl('msg-retour').addEventListener('click', () => msgFermerConversation());
   msgEl('msg-envoyer').addEventListener('click', msgEnvoyer);
-  msgEl('msg-destinataire').addEventListener('change', () => {
-    // Si on change de destinataire, on n'est plus en train de répondre à ce message.
-    if (msgReponseA && msgEl('msg-destinataire').value !== msgValeurReponse(msgReponseA)) msgAnnulerReponse();
+
+  const texte = msgEl('msg-texte');
+  texte.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); msgEnvoyer(); }
   });
-  msgEl('msg-reponse-chip').addEventListener('click', (e) => {
-    if (e.target.closest('.msg-chip-annuler')) msgAnnulerReponse();
+  texte.addEventListener('input', () => {
+    texte.style.height = 'auto';
+    texte.style.height = Math.min(texte.scrollHeight, 120) + 'px';
   });
 
-  // Boutons Répondre / Supprimer (délégation : la liste est re-générée à chaque rendu)
-  msgEl('msg-liste').addEventListener('click', async (e) => {
-    const rep = e.target.closest('.msg-reply');
-    if (rep) { msgRepondre(rep.dataset.id); return; }
-    const del = e.target.closest('.msg-delete');
-    if (del) {
-      if (!confirm('Supprimer ce message de votre boîte de réception ?\n\nIl sera retiré de votre boîte uniquement : les autres personnes concernées le conservent.')) return;
-      del.disabled = true;
-      del.textContent = '…';
-      await msgSupprimerDeMaBoite(del.dataset.id);
-      return;
-    }
-    if (e.target.closest('#msg-plus')) {
-      msgLimite += 200;
-      await msgChargerBoite({ silencieux: true });   // messages anciens : pas de bip
-    }
+  msgEl('msg-conv-liste').addEventListener('click', (e) => {
+    const item = e.target.closest('.msg-conv-item');
+    if (item) msgOuvrirConversation(item.dataset.cle);
+  });
+
+  msgEl('msg-bulles').addEventListener('click', (e) => {
+    const del = e.target.closest('.msg-bulle-supprimer');
+    if (del) msgSupprimerMessage(del.dataset.id);
   });
 }
 
 // ---------- Cycle de vie ----------
 
-// Appelée depuis chaque page une fois le tableau de bord affiché.
 async function initMessagerie() {
   msgMoi = msgWho();
   if (!msgMoi) return;
 
-  // Nouvelle session : on repart d'un état propre (évite tout mélange entre deux comptes).
-  msgMasques = new Set(); msgIdsConnus = new Set(); msgPremierChargement = true; msgLimite = 200;
+  msgMasques = new Set(); msgIdsConnus = new Set(); msgPremierChargement = true; msgConvOuverte = null;
 
   msgConstruireInterface();
   await msgChargerContacts();
-  await msgChargerBoite();
+  await msgChargerTout();
   msgAbonnerTempsReel();
 }
 
 async function msgChargerContacts() {
   const { data } = await supabaseClient.from('agents').select('id,username,nom_complet,agence,role');
-  const tous = data || [];
-  msgAgentsListe = tous.filter(a => a.role === 'agent' && a.username !== msgMoi.username);
-  msgAdminsListe = tous.filter(a => a.role === 'administrateur' && a.username !== msgMoi.username);
-  msgRemplirDestinataires();
+  msgContacts = new Map();
+  (data || []).forEach(a => {
+    if (a.username === msgMoi.username) return;
+    const type = a.role === 'administrateur' ? 'admin' : 'agent';
+    msgContacts.set(type + ':' + a.username, a);
+  });
 }
 
-function msgRemplirDestinataires() {
-  const sel = msgEl('msg-destinataire');
-  if (!sel) return;
-
-  const agentsOpts = msgAgentsListe.map(a => `<option value="agent:${msgEsc(a.username)}">${msgEsc(a.nom_complet)} — Agence de ${msgEsc(a.agence)}</option>`).join('');
-  const adminsOpts = msgAdminsListe.map(a => `<option value="admin:${msgEsc(a.username)}">${msgEsc(a.nom_complet)} — Administration</option>`).join('');
-
-  if (msgMoi.type === 'admin') {
-    sel.innerHTML =
-      `<option value="">Choisir…</option>` +
-      `<option value="tous">Tous les agents (actifs et inactifs)</option>` +
-      (agentsOpts ? `<optgroup label="Agents">${agentsOpts}</optgroup>` : '') +
-      (adminsOpts ? `<optgroup label="Autres administrateurs">${adminsOpts}</optgroup>` : '');
-  } else {
-    sel.innerHTML =
-      `<option value="">Choisir…</option>` +
-      (agentsOpts ? `<optgroup label="Agents">${agentsOpts}</optgroup>` : '') +
-      (adminsOpts ? `<optgroup label="Administration">${adminsOpts}</optgroup>` : '');
-  }
-}
-
-async function msgChargerBoite(options) {
-  const silencieux = !!(options && options.silencieux);
-  msgConstruireInterface();
-  const zone = msgEl('msg-liste');
-  if (!zone) return;
-  if (!msgMoi) { msgMoi = msgWho(); if (!msgMoi) return; }
-
-  // Ce que J'ai supprimé de ma boîte (et rien d'autre).
-  const masques = await msgChargerMasques();
-
-  // Reçus : un administrateur ne reçoit que ce qui lui est adressé ; un agent
-  // reçoit ce qui lui est adressé + les diffusions « tous les agents ».
-  const requete = msgMoi.type === 'admin'
-    ? supabaseClient.from('messages').select('*')
-        .eq('destinataire_type', 'admin').eq('destinataire_username', msgMoi.username)
-    : supabaseClient.from('messages').select('*')
-        .or(`destinataire_username.eq.${msgMoi.username},destinataire_type.eq.tous`);
-
-  // On demande « limite + nombre de masqués » pour que les messages supprimés
-  // ne prennent pas la place des autres dans la page affichée.
-  const taille = msgLimite + masques.size;
-  const { data, error } = await requete.order('created_at', { ascending: false }).limit(taille);
-  if (error) {
-    console.error('Chargement des messages impossible :', error);
-    zone.innerHTML = '<p class="msg-empty">Impossible de charger les messages. Réessayez.</p>';
-    return;
-  }
-  const recus = data || [];
-  msgAPlus = recus.length >= taille;
-  msgInbox = recus.filter(m => !masques.has(String(m.id)));
-
-  // Nouveau message = un identifiant jamais vu depuis l'ouverture de cette session.
-  // (Au tout premier chargement, les messages déjà présents ne font pas « bip ».)
-  // Les identifiants sont mémorisés AVANT le bip : deux chargements simultanés
-  // ne peuvent donc pas déclencher deux bips pour le même message.
-  const nouveaux = msgInbox.filter(m => !msgIdsConnus.has(String(m.id)));
-  msgInbox.forEach(m => msgIdsConnus.add(String(m.id)));
-  const etaitPremier = msgPremierChargement;
-  msgPremierChargement = false;
-  if (!etaitPremier && !silencieux && nouveaux.length) msgBip();
-
-  // Un message qui arrive pendant que la cloche est ouverte est mis en évidence,
-  // puis considéré comme lu (on est en train de le regarder).
-  if (msgBoiteOuverte) {
-    msgNonLus().forEach(m => msgSurlignes.add(String(m.id)));
-    msgMarquerLus();
-  }
-  msgRendreBoite();
-}
-
-// ---------- Suppression = retirer de MA boîte, sans rien effacer ----------
-
-function msgCleMasquesLocaux() { return 'coligo_msg_masques_' + msgMoi.type + '_' + msgMoi.username; }
-function msgLireMasquesLocaux() {
-  try { return JSON.parse(localStorage.getItem(msgCleMasquesLocaux()) || '[]').map(String); }
-  catch (e) { return []; }
-}
+// ---------- Chargement : mes messages envoyés + reçus, fusionnés ----------
 
 async function msgChargerMasques() {
-  // Repli : si la table `messages_masques` n'existe pas encore (migration pas exécutée),
-  // les messages supprimés sont masqués seulement dans ce navigateur (voir msgSupprimerDeMaBoite).
-  const ids = new Set(msgLireMasquesLocaux());
+  const ids = new Set();
   try {
     const { data, error } = await supabaseClient.from('messages_masques')
       .select('message_id')
@@ -266,30 +210,324 @@ async function msgChargerMasques() {
   return ids;
 }
 
-async function msgSupprimerDeMaBoite(id) {
+async function msgChargerTout() {
+  msgConstruireInterface();
+  if (!msgMoi) { msgMoi = msgWho(); if (!msgMoi) return; }
+
+  await msgChargerMasques();
+
+  const requeteRecus = msgMoi.type === 'admin'
+    ? supabaseClient.from('messages').select('*').eq('destinataire_type', 'admin').eq('destinataire_username', msgMoi.username)
+    : supabaseClient.from('messages').select('*').or(`destinataire_username.eq.${msgMoi.username},destinataire_type.eq.tous`);
+
+  const requeteEnvoyes = supabaseClient.from('messages').select('*')
+    .eq('expediteur_type', msgMoi.type).eq('expediteur_username', msgMoi.username);
+
+  const [{ data: recus, error: err1 }, { data: envoyes, error: err2 }] = await Promise.all([
+    requeteRecus.order('created_at', { ascending: true }).limit(2000),
+    requeteEnvoyes.order('created_at', { ascending: true }).limit(2000)
+  ]);
+
+  if (err1 || err2) {
+    console.error('Chargement des messages impossible :', err1 || err2);
+    msgEl('msg-conv-liste').innerHTML = '<p class="msg-conv-empty">Impossible de charger les messages. Réessayez.</p>';
+    return;
+  }
+
+  const fusion = new Map();
+  (recus || []).forEach(m => fusion.set(m.id, m));
+  (envoyes || []).forEach(m => fusion.set(m.id, m));
+
+  msgTous = [...fusion.values()]
+    .filter(m => !msgMasques.has(String(m.id)))
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  // Nouveau message = jamais vu depuis l'ouverture de cette session (pas au tout premier chargement).
+  const nouveaux = msgTous.filter(m => !msgIdsConnus.has(String(m.id)) && m.expediteur_username !== msgMoi.username);
+  msgTous.forEach(m => msgIdsConnus.add(String(m.id)));
+  const etaitPremier = msgPremierChargement;
+  msgPremierChargement = false;
+
+  // Un nouveau message dans la discussion actuellement ouverte est marqué lu tout de suite.
+  if (msgConvOuverte) msgMarquerConvLue(msgConvOuverte);
+
+  if (!etaitPremier && nouveaux.length) {
+    const horsConv = nouveaux.some(m => msgCleConversation(m) !== msgConvOuverte);
+    if (horsConv || !msgConvOuverte) msgBip();
+  }
+
+  msgRendreListe();
+  if (msgConvOuverte) msgRendreBulles();
+}
+
+// Clé de conversation d'un message, de MON point de vue.
+function msgCleConversation(m) {
+  if (m.destinataire_type === 'tous') return 'tous';
+  if (m.expediteur_username === msgMoi.username) return m.destinataire_type + ':' + m.destinataire_username;
+  return m.expediteur_type + ':' + m.expediteur_username;
+}
+
+function msgGroupes() {
+  const groupes = new Map();
+
+  // Pour un administrateur : « Tous les agents » est toujours épinglée, même vide.
+  if (msgMoi.type === 'admin') {
+    groupes.set('tous', { cle: 'tous', type: 'tous', username: null, nom: 'Tous les agents', sous: 'Diffusion', messages: [] });
+  }
+
+  msgTous.forEach(m => {
+    const cle = msgCleConversation(m);
+    if (!groupes.has(cle)) {
+      let nom, sous, type, username;
+      if (cle === 'tous') { nom = 'Tous les agents'; sous = 'Diffusion'; type = 'tous'; username = null; }
+      else {
+        [type, username] = cle.split(':');
+        const contact = msgContacts.get(cle);
+        const estMoi = m.expediteur_username === msgMoi.username;
+        nom = contact ? contact.nom_complet : (estMoi ? username : (m.expediteur_nom || username));
+        sous = contact ? (type === 'admin' ? 'Administration' : 'Agence de ' + (contact.agence || '—')) : (type === 'admin' ? 'Administration' : 'Agent');
+      }
+      groupes.set(cle, { cle, type, username, nom, sous, messages: [] });
+    }
+    groupes.get(cle).messages.push(m);
+  });
+
+  return [...groupes.values()].sort((a, b) => {
+    const da = a.messages.length ? new Date(a.messages[a.messages.length - 1].created_at) : 0;
+    const db = b.messages.length ? new Date(b.messages[b.messages.length - 1].created_at) : 0;
+    if (a.cle === 'tous' && !a.messages.length) return db ? 1 : -1;
+    return db - da;
+  });
+}
+
+function msgCleLus() { return 'coligo_msg_lus_' + msgMoi.type + '_' + msgMoi.username; }
+function msgLireLus() {
+  try { return new Set(JSON.parse(localStorage.getItem(msgCleLus()) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function msgEcrireLus(set) {
+  try { localStorage.setItem(msgCleLus(), JSON.stringify([...set].slice(-3000))); } catch (e) { /* silencieux */ }
+}
+function msgNonLusDe(g) {
+  const lus = msgLireLus();
+  return g.messages.filter(m => m.expediteur_username !== msgMoi.username && !lus.has(String(m.id))).length;
+}
+function msgMarquerConvLue(cle) {
+  const g = msgGroupes().find(x => x.cle === cle);
+  if (!g) return;
+  const lus = msgLireLus();
+  g.messages.forEach(m => lus.add(String(m.id)));
+  msgEcrireLus(lus);
+}
+
+// ---------- Rendu : liste des discussions ----------
+
+function msgRendreListe() {
+  const zone = msgEl('msg-conv-liste');
+  if (!zone) return;
+  const groupes = msgGroupes();
+
+  if (!groupes.length) {
+    zone.innerHTML = '<p class="msg-conv-empty">Aucune discussion pour le moment.<br>Touchez « + » pour en démarrer une.</p>';
+  } else {
+    zone.innerHTML = groupes.map(g => {
+      const dernier = g.messages[g.messages.length - 1];
+      const nonLus = msgNonLusDe(g);
+      const estMoiDernier = dernier && dernier.expediteur_username === msgMoi.username;
+      const apercu = dernier ? (estMoiDernier ? 'Vous : ' : '') + msgEsc(String(dernier.contenu || '').replace(/\s+/g, ' ')) : 'Aucun message';
+      return `
+        <div class="msg-conv-item${g.cle === msgConvOuverte ? ' is-active' : ''}" data-cle="${msgEsc(g.cle)}">
+          <div class="msg-avatar${g.type === 'tous' ? ' is-broadcast' : ''}" style="${g.type === 'tous' ? '' : `background:${msgCouleur(g.cle)}`}">
+            ${g.type === 'tous' ? MSG_ICONE_CLOCHE : msgEsc(msgInitiales(g.nom))}
+          </div>
+          <div class="msg-conv-body">
+            <div class="msg-conv-top">
+              <span class="msg-conv-nom">${msgEsc(g.nom)}</span>
+              ${dernier ? `<span class="msg-conv-heure">${msgHeure(dernier.created_at)}</span>` : ''}
+            </div>
+            <div class="msg-conv-bottom">
+              <span class="msg-conv-apercu">${apercu}</span>
+              ${nonLus ? `<span class="msg-conv-badge">${nonLus}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  msgMajPastille();
+}
+
+// Compteur rouge sur l'entrée « Messagerie » du menu (en dehors du composant).
+function msgMajPastille() {
+  const n = msgGroupes().reduce((total, g) => total + msgNonLusDe(g), 0);
+  document.querySelectorAll('.msg-badge').forEach(el => {
+    if (n > 0) { el.textContent = n; el.classList.remove('hidden'); }
+    else { el.classList.add('hidden'); }
+  });
+}
+
+// ---------- Rendu : conversation ouverte (bulles) ----------
+
+function msgOuvrirConversation(cle) {
+  msgConvOuverte = cle;
+  msgMarquerConvLue(cle);
+
+  const shell = msgEl('msg-shell');
+  shell.classList.add('is-thread-open');
+  msgEl('msg-thread-vide').hidden = true;
+  msgEl('msg-thread-ouverte').hidden = false;
+
+  const g = msgGroupes().find(x => x.cle === cle) || { cle, nom: msgContacts.get(cle)?.nom_complet || cle, sous: '', type: cle.split(':')[0], messages: [] };
+
+  const avatar = msgEl('msg-thread-avatar');
+  avatar.className = 'msg-avatar' + (g.type === 'tous' ? ' is-broadcast' : '');
+  avatar.style.background = g.type === 'tous' ? '' : msgCouleur(g.cle);
+  avatar.innerHTML = g.type === 'tous' ? MSG_ICONE_CLOCHE : msgEsc(msgInitiales(g.nom));
+  msgEl('msg-thread-nom').textContent = g.nom;
+  msgEl('msg-thread-sous').textContent = g.sous || '';
+
+  // Un agent ne peut pas écrire dans « Tous les agents » : lecture seule.
+  const lectureSeule = g.cle === 'tous' && msgMoi.type !== 'admin';
+  const zoneLS = msgEl('msg-lecture-seule');
+  zoneLS.hidden = !lectureSeule;
+  zoneLS.textContent = "Vous ne pouvez pas répondre à une diffusion. Ouvrez une discussion directe avec l'administrateur concerné.";
+  msgEl('msg-saisie').style.display = lectureSeule ? 'none' : 'flex';
+
+  msgEl('msg-thread-erreur').hidden = true;
+  msgRendreBulles();
+  msgRendreListe();
+
+  if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) {
+    msgEl('msg-texte').blur();
+  } else {
+    msgEl('msg-texte').focus({ preventScroll: true });
+  }
+}
+
+function msgFermerConversation() {
+  msgConvOuverte = null;
+  msgEl('msg-shell').classList.remove('is-thread-open');
+  msgEl('msg-thread-vide').hidden = false;
+  msgEl('msg-thread-ouverte').hidden = true;
+  msgRendreListe();
+}
+
+function msgRendreBulles() {
+  const zone = msgEl('msg-bulles');
+  if (!zone || !msgConvOuverte) return;
+  const g = msgGroupes().find(x => x.cle === msgConvOuverte);
+  const messages = g ? g.messages : [];
+
+  if (!messages.length) {
+    zone.innerHTML = '<p class="msg-conv-empty">Aucun message. Écrivez le premier !</p>';
+    return;
+  }
+
+  let html = '';
+  let dernierJour = null;
+  messages.forEach(m => {
+    const jour = msgJourLabel(m.created_at);
+    if (jour !== dernierJour) { html += `<div class="msg-jour-separateur">${jour}</div>`; dernierJour = jour; }
+
+    const estMoi = m.expediteur_username === msgMoi.username;
+    const afficherAuteur = msgConvOuverte === 'tous' && !estMoi;
+
+    html += `
+      <div class="msg-bulle-ligne ${estMoi ? 'is-sent' : 'is-received'}">
+        <div class="msg-bulle ${estMoi ? 'is-sent' : 'is-received'}" data-id="${m.id}">
+          ${estMoi ? `<button type="button" class="msg-bulle-supprimer" data-id="${m.id}" title="Supprimer pour moi">${MSG_ICONE_SUPPR}</button>` : ''}
+          ${afficherAuteur ? `<div class="msg-bulle-auteur">${msgEsc(m.expediteur_nom)}</div>` : ''}
+          <p class="msg-bulle-texte">${msgEsc(m.contenu)}</p>
+          <div class="msg-bulle-pied">${msgHeure(m.created_at)} ${estMoi ? MSG_ICONE_ENVOYE : ''}</div>
+        </div>
+      </div>`;
+  });
+
+  const scrollEnBas = zone.scrollTop + zone.clientHeight >= zone.scrollHeight - 60;
+  zone.innerHTML = html;
+  if (scrollEnBas || zone.dataset.premier !== '1') {
+    zone.scrollTop = zone.scrollHeight;
+    zone.dataset.premier = '1';
+  }
+}
+
+async function msgSupprimerMessage(id) {
+  if (!confirm('Supprimer ce message pour vous ?\n\nIl sera retiré de votre discussion uniquement : l\'autre personne le conserve.')) return;
+
   const { error } = await supabaseClient.from('messages_masques').insert({
     message_id: Number(id),
     utilisateur_type: msgMoi.type,
     utilisateur_username: msgMoi.username
   });
-  // 23505 = déjà masqué : sans importance.
   if (error && error.code !== '23505') {
-    console.warn('Suppression enregistrée seulement dans ce navigateur :', error.message);
-    try {
-      const locaux = new Set(msgLireMasquesLocaux()); locaux.add(String(id));
-      localStorage.setItem(msgCleMasquesLocaux(), JSON.stringify([...locaux].slice(-2000)));
-    } catch (e) { /* silencieux */ }
+    console.warn('Suppression indisponible :', error.message);
+    return;
   }
   msgMasques.add(String(id));
-  msgInbox = msgInbox.filter(m => String(m.id) !== String(id));
-  msgRendreBoite();
+  msgTous = msgTous.filter(m => String(m.id) !== String(id));
+  msgRendreBulles();
+  msgRendreListe();
+}
+
+// ---------- Nouvelle discussion ----------
+
+function msgOuvrirNouvelle() {
+  const thread = msgEl('msg-thread');
+  const existant = thread.querySelector('.msg-nouvelle-overlay');
+  if (existant) { existant.remove(); return; }
+
+  const agents = [...msgContacts.entries()].filter(([cle, c]) => c.role === 'agent');
+  const admins = [...msgContacts.entries()].filter(([cle, c]) => c.role === 'administrateur');
+
+  const ligne = ([cle, c]) => `
+    <div class="msg-nouvelle-item" data-cle="${msgEsc(cle)}">
+      <div class="msg-avatar" style="background:${msgCouleur(cle)}">${msgEsc(msgInitiales(c.nom_complet))}</div>
+      <div>
+        <span class="msg-conv-nom">${msgEsc(c.nom_complet)}</span>
+        <div class="msg-conv-sous">${c.role === 'administrateur' ? 'Administration' : 'Agence de ' + msgEsc(c.agence || '—')}</div>
+      </div>
+    </div>`;
+
+  const diffusion = msgMoi.type === 'admin'
+    ? `<div class="msg-nouvelle-groupe-titre">Diffusion</div>
+       <div class="msg-nouvelle-item" data-cle="tous">
+         <div class="msg-avatar is-broadcast">${MSG_ICONE_CLOCHE}</div>
+         <div><span class="msg-conv-nom">Tous les agents</span></div>
+       </div>` : '';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-nouvelle-overlay';
+  overlay.innerHTML = `
+    <div class="msg-nouvelle-panneau">
+      <div class="msg-nouvelle-tete">
+        <h4>Nouvelle discussion</h4>
+        <button type="button" class="msg-nouvelle-fermer" aria-label="Fermer">${MSG_ICONE_FERMER}</button>
+      </div>
+      <div class="msg-nouvelle-liste">
+        ${diffusion}
+        ${admins.length ? '<div class="msg-nouvelle-groupe-titre">Administration</div>' + admins.map(ligne).join('') : ''}
+        ${agents.length ? '<div class="msg-nouvelle-groupe-titre">Agents</div>' + agents.map(ligne).join('') : ''}
+        ${(!admins.length && !agents.length) ? '<p class="msg-conv-empty">Aucun autre compte pour le moment.</p>' : ''}
+      </div>
+    </div>`;
+
+  thread.appendChild(overlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) { overlay.remove(); return; }
+    if (e.target.closest('.msg-nouvelle-fermer')) { overlay.remove(); return; }
+    const item = e.target.closest('.msg-nouvelle-item');
+    if (item) {
+      overlay.remove();
+      msgOuvrirConversation(item.dataset.cle);
+      if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) msgEl('msg-shell').classList.add('is-thread-open');
+    }
+  });
 }
 
 // ---------- Bip sonore ----------
 // Un seul bip bref (sinusoïde 1000 Hz, 0,22 s), coupé net : le volume monte en
 // 4 ms et retombe à zéro en 6 ms pile à la fin (sans ce micro-fondu on entendrait
-// un « clac »), puis l'oscillateur est arrêté et débranché. Jamais de boucle, jamais de
-// résonance.
+// un « clac »), puis l'oscillateur est arrêté et débranché. Jamais de boucle.
 // Les navigateurs interdisent tout son tant que l'utilisateur n'a pas cliqué ou
 // touché la page au moins une fois : le moteur audio est donc activé au premier geste.
 let msgAudioCtx = null;
@@ -308,13 +546,11 @@ function msgPreparerSon() {
 
 function msgBip() {
   const maintenant = Date.now();
-  if (maintenant - msgDernierBip < 500) return;   // plusieurs messages d'un coup = un seul bip
+  if (maintenant - msgDernierBip < 500) return;
   msgDernierBip = maintenant;
   try {
     msgPreparerSon();
     const ctx = msgAudioCtx;
-    // Pas encore de geste de l'utilisateur : on ne programme rien (sinon le bip
-    // se jouerait en retard, au premier clic).
     if (!ctx || ctx.state !== 'running') return;
 
     const debut = ctx.currentTime + 0.02;
@@ -336,172 +572,38 @@ function msgBip() {
   } catch (e) { /* le son ne doit jamais gêner la messagerie */ }
 }
 
-// ---------- Lu / non lu (mémorisé dans ce navigateur) ----------
-
-function msgCleLus() { return 'coligo_msg_lus_' + msgMoi.type + '_' + msgMoi.username; }
-function msgLireLus() {
-  try { return new Set(JSON.parse(localStorage.getItem(msgCleLus()) || '[]')); }
-  catch (e) { return new Set(); }
-}
-function msgNonLus() {
-  if (!msgMoi) return [];
-  const lus = msgLireLus();
-  return msgInbox.filter(m => !lus.has(String(m.id)));
-}
-function msgMarquerLus() {
-  const lus = msgLireLus();
-  msgInbox.forEach(m => lus.add(String(m.id)));
-  try { localStorage.setItem(msgCleLus(), JSON.stringify([...lus].slice(-1000))); } catch (e) { /* silencieux */ }
-}
-
-// ---------- Cloche et boîte de réception ----------
-
-function msgBasculerBoite(ouvrir) {
-  const boite = msgEl('msg-boite');
-  const cloche = msgEl('msg-cloche');
-  if (!boite || !cloche) return;
-  msgBoiteOuverte = (ouvrir === undefined) ? boite.hidden : ouvrir;
-  boite.hidden = !msgBoiteOuverte;
-  cloche.setAttribute('aria-expanded', String(msgBoiteOuverte));
-
-  if (msgBoiteOuverte) {
-    msgSurlignes = new Set(msgNonLus().map(m => String(m.id)));
-    msgMarquerLus();
-    msgRendreBoite();
-    boite.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } else {
-    msgSurlignes = new Set();
-    msgRendreBoite();
-  }
-}
-
-// Nom lisible + rôle de l'expéditeur.
-function msgExpediteurLibelle(m) {
-  if (m.expediteur_type === 'admin') return msgEsc(m.expediteur_nom) + ' · Administration';
-  if (msgMoi && msgMoi.type === 'admin') return msgEsc(m.expediteur_nom) + ' · Agent';
-  return msgEsc(m.expediteur_nom);
-}
-
-function msgCarteHtml(m) {
-  const nouveau = msgSurlignes.has(String(m.id));
-  // Les anciens messages d'un admin n'ont pas d'identifiant d'expéditeur : impossible d'y répondre.
-  const peutRepondre = !!m.expediteur_username;
-  return `
-    <div class="msg-card${nouveau ? ' is-new' : ''}" data-id="${m.id}">
-      <div class="msg-card-top">
-        <span class="msg-from">${nouveau ? '<span class="msg-dot" title="Nouveau"></span>' : ''}${msgExpediteurLibelle(m)}</span>
-        <span class="msg-time">${msgDate(m.created_at)}</span>
-      </div>
-      <p class="msg-content">${msgEsc(m.contenu)}</p>
-      <div class="msg-actions">
-        ${peutRepondre ? `<button type="button" class="msg-reply" data-id="${m.id}">Répondre</button>` : ''}
-        <button type="button" class="msg-delete" data-id="${m.id}" title="Supprimer">Supprimer</button>
-      </div>
-    </div>`;
-}
-
-function msgRendreBoite() {
-  const zone = msgEl('msg-liste');
-  if (zone) {
-    zone.innerHTML = (msgInbox.length
-      ? msgInbox.map(msgCarteHtml).join('')
-      : '<p class="msg-empty">Aucun message reçu pour le moment.</p>')
-      + (msgAPlus ? '<div style="text-align:center; padding:10px 0 2px;"><button type="button" id="msg-plus" class="msg-lien">Afficher les messages plus anciens</button></div>' : '');
-  }
-  msgMajPastille();
-}
-
-// Compteur rouge : sur la cloche, et sur l'entrée « Messagerie » du menu.
-function msgMajPastille() {
-  const n = msgNonLus().length;
-
-  const c = msgEl('msg-cloche-count');
-  if (c) { c.textContent = n; c.hidden = n === 0; }
-  const cloche = msgEl('msg-cloche');
-  if (cloche) cloche.setAttribute('aria-label', n ? `Boîte de réception, ${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''}` : 'Boîte de réception');
-
-  document.querySelectorAll('.msg-badge').forEach(el => {
-    if (n > 0) { el.textContent = n; el.classList.remove('hidden'); }
-    else { el.classList.add('hidden'); }
-  });
-}
+// ---------- Temps réel ----------
 
 function msgAbonnerTempsReel() {
   if (msgChannel) supabaseClient.removeChannel(msgChannel);
   msgChannel = supabaseClient
     .channel('messagerie-' + (msgMoi.username || 'moi'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => { msgChargerBoite(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => { msgChargerTout(); })
     .subscribe();
-}
-
-// ---------- Répondre ----------
-
-function msgValeurReponse(m) { return m.expediteur_type + ':' + m.expediteur_username; }
-
-function msgRepondre(id) {
-  const m = msgInbox.find(x => String(x.id) === String(id));
-  if (!m || !m.expediteur_username) return;
-
-  const sel = msgEl('msg-destinataire');
-  const valeur = msgValeurReponse(m);
-  // L'expéditeur peut ne pas figurer dans la liste (compte supprimé, etc.) : on l'ajoute.
-  if (![...sel.options].some(o => o.value === valeur)) {
-    const o = document.createElement('option');
-    o.value = valeur;
-    o.textContent = m.expediteur_nom || m.expediteur_username;
-    sel.appendChild(o);
-  }
-  sel.value = valeur;
-  msgReponseA = m;
-
-  const extrait = String(m.contenu || '').replace(/\s+/g, ' ').trim();
-  const chip = msgEl('msg-reponse-chip');
-  chip.innerHTML =
-    `<span>Réponse à <strong>${msgEsc(m.expediteur_nom || m.expediteur_username)}</strong> — « ${msgEsc(extrait.length > 90 ? extrait.slice(0, 90) + '…' : extrait)} »</span>` +
-    `<button type="button" class="msg-chip-annuler" aria-label="Annuler la réponse">Annuler</button>`;
-  chip.hidden = false;
-
-  msgBasculerBoite(false);
-  msgEl('msg-nouveau').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  msgEl('msg-texte').focus({ preventScroll: true });
-}
-
-function msgAnnulerReponse() {
-  msgReponseA = null;
-  const chip = msgEl('msg-reponse-chip');
-  if (chip) { chip.hidden = true; chip.innerHTML = ''; }
 }
 
 // ---------- Envoi ----------
 
 async function msgEnvoyer() {
   const btn = msgEl('msg-envoyer');
-  const zone = msgEl('msg-envoi-message');
-  const destSelect = msgEl('msg-destinataire');
+  const zoneErreur = msgEl('msg-thread-erreur');
   const texteInput = msgEl('msg-texte');
-  if (!zone || !destSelect || !texteInput) return;
+  if (!texteInput || !msgConvOuverte) return;
 
-  const destRaw = destSelect.value;
   const contenu = texteInput.value.trim();
-  zone.innerHTML = '';
+  zoneErreur.hidden = true;
 
-  // Garde-fou : si la messagerie n'a pas encore fini de s'initialiser
-  // (page rechargée trop vite), on le dit clairement au lieu de ne rien faire.
   if (!msgMoi) {
     msgMoi = msgWho();
-    if (!msgMoi) {
-      zone.innerHTML = '<div class="msg-error">Session expirée. Reconnectez-vous puis réessayez.</div>';
-      return;
-    }
+    if (!msgMoi) { zoneErreur.hidden = false; zoneErreur.textContent = 'Session expirée. Reconnectez-vous puis réessayez.'; return; }
   }
-  if (!destRaw) { zone.innerHTML = '<div class="msg-error">Choisissez un destinataire.</div>'; return; }
-  if (!contenu) { zone.innerHTML = '<div class="msg-error">Écrivez un message avant d\'envoyer.</div>'; return; }
+  if (!contenu) return;
+  if (msgConvOuverte === 'tous' && msgMoi.type !== 'admin') return;
 
-  setBtnLoading(btn, 'Envoi…');
+  btn.disabled = true;
 
   try {
-    // "tous" (uniquement pour un admin) ; sinon "agent:username" ou "admin:username".
-    const [destType, destUsername] = destRaw === 'tous' ? ['tous', null] : destRaw.split(':');
+    const [destType, destUsername] = msgConvOuverte === 'tous' ? ['tous', null] : msgConvOuverte.split(':');
 
     const payload = {
       expediteur_type: msgMoi.type,
@@ -516,19 +618,20 @@ async function msgEnvoyer() {
 
     if (error) {
       console.error('Envoi du message impossible :', error);
-      zone.innerHTML = `<div class="msg-error">Envoi impossible : ${msgEsc(error.message || 'réessayez.')}</div>`;
+      zoneErreur.hidden = false;
+      zoneErreur.textContent = 'Envoi impossible : ' + (error.message || 'réessayez.');
       return;
     }
 
     texteInput.value = '';
-    msgAnnulerReponse();
-    zone.innerHTML = '<div class="msg-success">Message envoyé.</div>';
-    setTimeout(() => { zone.innerHTML = ''; }, 2500);
+    texteInput.style.height = 'auto';
+    await msgChargerTout();
   } catch (e) {
     console.error('Erreur inattendue lors de l\'envoi du message :', e);
-    zone.innerHTML = '<div class="msg-error">Une erreur inattendue est survenue. Réessayez.</div>';
+    zoneErreur.hidden = false;
+    zoneErreur.textContent = 'Une erreur inattendue est survenue. Réessayez.';
   } finally {
-    clearBtnLoading(btn);
+    btn.disabled = false;
   }
 }
 
@@ -537,6 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Rechargement de la page avec une session déjà ouverte : la page a affiché son
   // tableau de bord avant que ce fichier ne soit chargé, donc initMessagerie() n'a
-  // pas pu être appelée. On l'appelle ici (liste des destinataires, boîte, temps réel).
+  // pas pu être appelée. On l'appelle ici.
   if (!msgMoi && msgWho()) initMessagerie();
 });

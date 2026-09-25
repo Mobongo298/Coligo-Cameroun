@@ -68,7 +68,7 @@
         <div class="admin-info-box" id="forgot-sent-msg"></div>
         <div class="admin-field">
           <label>Code reçu par e-mail</label>
-          <input type="text" id="forgot-code" placeholder="123456" maxlength="6" inputmode="numeric">
+          <input type="text" id="forgot-code" class="digits-only" placeholder="123456" maxlength="6" inputmode="numeric">
           <p style="margin:8px 0 0; text-align:right;">
             <button type="button" id="btn-forgot-resend" class="auth-link resend-link" disabled>Renvoyer le code (25s)</button>
           </p>
@@ -240,7 +240,7 @@
               </div>
               <div>
                 <label class="block text-sm text-slate-600 mb-1" for="f-expediteur-tel">Téléphone</label>
-                <input id="f-expediteur-tel" type="tel" value="+237 " class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                <input id="f-expediteur-tel" type="tel" value="+237 " class="phone-only w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
               </div>
               <div>
                 <label class="block text-sm text-slate-600 mb-1">Ville de départ</label>
@@ -258,7 +258,7 @@
               </div>
               <div>
                 <label class="block text-sm text-slate-600 mb-1" for="f-destinataire-tel">Téléphone</label>
-                <input id="f-destinataire-tel" type="tel" value="+237 " class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+                <input id="f-destinataire-tel" type="tel" value="+237 " class="phone-only w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
               </div>
               <div>
                 <label class="block text-sm text-slate-600 mb-1">Ville d'arrivée</label>
@@ -272,7 +272,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label class="block text-sm text-slate-600 mb-1" for="f-montant">Montant payé (FCFA)</label>
-                <input id="f-montant" type="number" min="0" step="500" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="2000">
+                <input id="f-montant" type="number" min="0" step="500" class="digits-only w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" placeholder="2000">
               </div>
               <div class="bg-coligo-light rounded-lg px-4 py-3">
                 <div class="text-xs text-slate-600">Valeur déclarée du colis</div>

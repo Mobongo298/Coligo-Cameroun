@@ -437,7 +437,7 @@ function afficherColis(c) {
             </div>
             <div>
               <label class="block text-sm text-slate-600 mb-1" for="r-mand-tel">Téléphone</label>
-              <input id="r-mand-tel" type="tel" value="+237 " class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
+              <input id="r-mand-tel" type="tel" value="+237 " class="phone-only w-full px-3 py-2 rounded-lg border border-slate-300 text-sm">
             </div>
             <div>
               <label class="block text-sm text-slate-600 mb-1" for="r-mand-cni">N° de CNI</label>

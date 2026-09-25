@@ -34,6 +34,16 @@
     outline: none; border-color: #368AC8; box-shadow: 0 0 0 3px rgba(54,138,200,0.16);
   }
   .fld .hint { font-size: 0.76rem; color: #64778D; margin-top: 6px; }
+  .pw-field { position: relative; }
+  .pw-field input { padding-right: 42px !important; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; padding: 6px; margin: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #64778D; line-height: 0; border-radius: 6px;
+  }
+  .pw-toggle:hover { color: #1D6FA8; background: #E8F2F9; }
+  .pw-toggle svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body class="app-bg font-sans text-slate-800 min-h-screen">
@@ -102,7 +112,7 @@
 
       <div class="fld">
         <label for="s-invite">Code d'invitation</label>
-        <input type="text" id="s-invite" placeholder="Fourni par votre responsable">
+        <input type="text" id="s-invite" class="digits-only" inputmode="numeric" placeholder="Fourni par votre responsable">
         <p class="hint">
           À usage unique : il change automatiquement après chaque inscription. Un responsable
           voit le code en cours sur son tableau de bord.

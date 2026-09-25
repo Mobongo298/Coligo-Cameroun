@@ -90,6 +90,17 @@
 }
 .resend-link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 
+.pw-field { position: relative; }
+.pw-field input { padding-right: 42px !important; }
+.pw-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 6px; margin: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); line-height: 0; border-radius: 6px;
+}
+.pw-toggle:hover { color: var(--brand); background: var(--brand-wash); }
+.pw-toggle svg { width: 18px; height: 18px; }
+
 .admin-info-box {
   background: var(--brand-wash); color: var(--brand-deep); border: 1px solid var(--brand-wash-2);
   border-radius: 9px; padding: 10px 13px; font-size: 0.88rem; margin-bottom: 14px;
