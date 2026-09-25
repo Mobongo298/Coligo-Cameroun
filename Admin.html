@@ -227,13 +227,16 @@
       <section class="admin-view" id="view-invitation">
         <h2 class="view-title">Code d'invitation</h2>
         <div class="admin-card">
-          <h3>Code actuel</h3>
+          <h3>Code actuel — Agent</h3>
           <p id="invite-code-box" class="muted-admin">Chargement…</p>
+          <h3 style="margin-top:18px;">Code actuel — Responsable</h3>
+          <p id="invite-code-box-admin" class="muted-admin">Chargement…</p>
           <button class="admin-btn small ghost" id="btn-refresh-invite">Actualiser maintenant</button>
           <p class="muted-admin" style="margin-top:12px; font-size:0.82rem;">
-            À communiquer au prochain agent ou responsable à inscrire sur <a href="signup.html">signup.html</a>.
-            Il devient automatiquement invalide dès qu'il a servi une fois, et le code affiché ici se
-            met à jour tout seul dès qu'un nouvel agent s'inscrit — le bouton ci-dessus reste utile en
+            Communiquez le code correspondant au rôle du prochain compte à inscrire sur <a href="signup.html">signup.html</a> :
+            le code Agent ne permet de créer qu'un compte agent, le code Responsable ne permet de créer qu'un compte responsable.
+            Chacun devient automatiquement invalide dès qu'il a servi une fois, et se
+            met à jour tout seul dès qu'un nouveau compte s'inscrit — le bouton ci-dessus reste utile en
             secours si la connexion temps réel est momentanément coupée.
           </p>
         </div>

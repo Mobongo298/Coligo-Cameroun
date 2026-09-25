@@ -768,15 +768,19 @@ function applyHistoriqueFilters() {
 
 async function loadInviteCode() {
   const box = document.getElementById('invite-code-box');
+  const boxAdmin = document.getElementById('invite-code-box-admin');
   const btn = document.getElementById('btn-refresh-invite');
   box.textContent = 'Chargement…';
+  boxAdmin.textContent = 'Chargement…';
   const { data, error } = await supabaseClient.rpc('get_current_invite_code');
   clearBtnLoading(btn);
   if (error || !data) {
     box.innerHTML = '<span class="muted-admin">Code d\'invitation indisponible pour le moment.</span>';
+    boxAdmin.innerHTML = '<span class="muted-admin">Code d\'invitation indisponible pour le moment.</span>';
     return;
   }
-  box.innerHTML = `Code actuel : <strong style="font-size:1.3rem; letter-spacing:0.05em; color:var(--admin-primary);">${esc(data)}</strong>`;
+  box.innerHTML = `Code actuel : <strong style="font-size:1.3rem; letter-spacing:0.05em; color:var(--admin-primary);">${esc(data.agent)}</strong>`;
+  boxAdmin.innerHTML = `Code actuel : <strong style="font-size:1.3rem; letter-spacing:0.05em; color:var(--admin-primary);">${esc(data.administrateur)}</strong>`;
 }
 document.getElementById('btn-refresh-invite').addEventListener('click', () => {
   setBtnLoading(document.getElementById('btn-refresh-invite'), 'Actualisation…');
