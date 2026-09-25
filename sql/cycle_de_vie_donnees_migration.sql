@@ -57,6 +57,8 @@ create table if not exists retention_settings (
   constraint retention_settings_single_row check (id = 1)
 );
 insert into retention_settings (id) values (1) on conflict (id) do nothing;
+-- Ajouté avec la désactivation des comptes agents (sans effet si déjà présent).
+alter table retention_settings add column if not exists agents_desactives_suppression_jours int not null default 30;
 
 alter table retention_settings enable row level security;
 -- Aucune politique : lecture via lifecycle_regles(), écriture via
@@ -357,7 +359,32 @@ begin
     d := d || jsonb_build_object('messages', n); total := total + n;
   end if;
 
-  -- h) Journal des nettoyages lui-même
+  -- h) Comptes agents désactivés depuis plus de N jours (défaut 30).
+  --    Le compte est supprimé, une fiche est gardée dans agents_archives et
+  --    TOUTES ses activités restent (colis, historique, retraits, messages
+  --    référencent l'agent par son identifiant, pas par une clé étrangère).
+  --    Nécessite sql/agents_desactivation_modification_migration.sql.
+  if toutes or 'agents' = any (p_categories) then
+    begin
+      if p_simuler then
+        select count(*) into n from agents
+        where actif = false and desactive_le < now() - make_interval(days => r.agents_desactives_suppression_jours);
+      else
+        insert into agents_archives (agent_id, username, nom_complet, agence, role, fiche, desactive_le, desactive_par, desactive_motif, supprime_le)
+        select a.id::text, a.username, a.nom_complet, a.agence, a.role, to_jsonb(a) - 'password', a.desactive_le, a.desactive_par, a.desactive_motif, now()
+        from agents a
+        where a.actif = false and a.desactive_le < now() - make_interval(days => r.agents_desactives_suppression_jours)
+        on conflict (username) do update set supprime_le = excluded.supprime_le;
+
+        delete from agents
+        where actif = false and desactive_le < now() - make_interval(days => r.agents_desactives_suppression_jours);
+        get diagnostics n = row_count;
+      end if;
+    exception when undefined_table or undefined_column then n := 0; end;
+    d := d || jsonb_build_object('agents', n); total := total + n;
+  end if;
+
+  -- i) Journal des nettoyages lui-même
   if toutes or 'journal' = any (p_categories) then
     if p_simuler then
       select count(*) into n from purge_journal
@@ -526,6 +553,7 @@ begin
     codes_techniques_heures          = greatest(coalesce((p_regles->>'codes_techniques_heures')::int, codes_techniques_heures), 1),
     presence_expiration_heures       = greatest(coalesce((p_regles->>'presence_expiration_heures')::int, presence_expiration_heures), 2),
     journal_conservation_jours       = greatest(coalesce((p_regles->>'journal_conservation_jours')::int, journal_conservation_jours), 180),
+    agents_desactives_suppression_jours = greatest(coalesce((p_regles->>'agents_desactives_suppression_jours')::int, agents_desactives_suppression_jours), 7),
     updated_at = now(),
     updated_by = p_username
   where id = 1;

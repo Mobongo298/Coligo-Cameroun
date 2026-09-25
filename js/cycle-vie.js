@@ -26,6 +26,8 @@ const CDV_CATEGORIES = [
     regle: r => `Remis à zéro ${r.codes_techniques_heures} h après la fin du verrouillage` },
   { cle: 'presence', label: 'Présence « en ligne » bloquée',
     regle: r => `Agent repassé « hors ligne » après ${r.presence_expiration_heures} h sans nouvelle connexion` },
+  { cle: 'agents', label: 'Comptes agents désactivés',
+    regle: r => `Supprimés ${r.agents_desactives_suppression_jours ?? 30} j après la désactivation s'ils n'ont pas été réactivés (leurs activités restent)` },
   { cle: 'journal', label: 'Journal des nettoyages',
     regle: r => `Entrées du journal supprimées après ${r.journal_conservation_jours} j` }
 ];
@@ -39,13 +41,14 @@ const CDV_CHAMPS_REGLES = [
   { cle: 'messages_conservation_jours', label: 'Supprimer les messages après', unite: 'jours', min: 30 },
   { cle: 'codes_techniques_heures', label: 'Purger les codes et compteurs après', unite: 'heures', min: 1 },
   { cle: 'presence_expiration_heures', label: 'Présence expirée après', unite: 'heures', min: 2 },
+  { cle: 'agents_desactives_suppression_jours', label: 'Supprimer un compte agent désactivé après', unite: 'jours', min: 7 },
   { cle: 'journal_conservation_jours', label: 'Conserver le journal', unite: 'jours', min: 180 }
 ];
 
 const CDV_LIBELLES_JOURNAL = {
   anonymisation: 'retrait(s) anonymisé(s)', colis_retires: 'colis retiré(s) supprimé(s)',
   listings: 'listing(s) vide(s)', messages: 'message(s)', codes: 'code(s)',
-  tentatives: 'compteur(s) de connexion', presence: 'présence(s) corrigée(s)', journal: 'entrée(s) de journal'
+  tentatives: 'compteur(s) de connexion', presence: 'présence(s) corrigée(s)', agents: 'compte(s) agent supprimé(s)', journal: 'entrée(s) de journal'
 };
 
 let cdvEtat = { regles: null, apercu: null, nonReclames: [], journal: [] };
@@ -178,7 +181,7 @@ function cdvRendre() {
         ${CDV_CHAMPS_REGLES.map(f => `
           <div class="f-group">
             <label for="cdv-${f.cle}">${esc(f.label)} <span class="muted-admin">(${f.unite}, min. ${f.min})</span></label>
-            <input type="number" id="cdv-${f.cle}" min="${f.min}" step="1" value="${Number(r[f.cle])}">
+            <input type="number" id="cdv-${f.cle}" min="${f.min}" step="1" value="${Number(r[f.cle] ?? (f.cle === 'agents_desactives_suppression_jours' ? 30 : f.min))}">
           </div>`).join('')}
       </div>
       <p class="muted-admin" style="font-size:0.8rem; margin:10px 0;">
@@ -223,6 +226,8 @@ function cdvDetailJournal(j) {
     return `Colis <strong>${esc(d.numero_suivi)}</strong> (${esc(d.statut)}${d.non_reclame ? ', non réclamé' : ''}) — motif : ${esc(d.motif)}`;
   }
   if (d.regles_modifiees) return 'Règles de conservation modifiées';
+  if (d.compte_desactive) return `Compte <strong>${esc(d.compte_desactive)}</strong> désactivé — motif : ${esc(d.motif)}`;
+  if (d.compte_reactive) return `Compte <strong>${esc(d.compte_reactive)}</strong> réactivé`;
   const parts = Object.keys(CDV_LIBELLES_JOURNAL)
     .filter(k => Number(d[k] || 0) > 0)
     .map(k => `${d[k]} ${CDV_LIBELLES_JOURNAL[k]}`);
@@ -231,7 +236,7 @@ function cdvDetailJournal(j) {
 
 // ---------- Fenêtre de confirmation par mot de passe ----------
 
-function cdvConfirmer({ titre, texte, avecMotif, libelleBouton, action }) {
+function cdvConfirmer({ titre, texte, avecMotif, libelleBouton, action, motifPlaceholder, sansDanger }) {
   const content = document.getElementById('modal-content');
   content.innerHTML = `
     <h3>${esc(titre)}</h3>
@@ -239,7 +244,7 @@ function cdvConfirmer({ titre, texte, avecMotif, libelleBouton, action }) {
     ${avecMotif ? `
       <div class="admin-field">
         <label>Motif (obligatoire, conservé dans le journal)</label>
-        <input type="text" id="cdv-motif" placeholder="Ex. : destinataire injoignable depuis 3 mois">
+        <input type="text" id="cdv-motif" placeholder="${esc(motifPlaceholder || 'Ex. : destinataire injoignable depuis 3 mois')}">
       </div>` : ''}
     <div class="admin-field">
       <label>Votre mot de passe administrateur</label>
@@ -247,7 +252,7 @@ function cdvConfirmer({ titre, texte, avecMotif, libelleBouton, action }) {
     </div>
     <div id="cdv-modal-msg"></div>
     <div class="filter-bar">
-      <button class="admin-btn small danger" id="cdv-modal-ok">${esc(libelleBouton)}</button>
+      <button class="admin-btn small ${sansDanger ? '' : 'danger'}" id="cdv-modal-ok">${esc(libelleBouton)}</button>
       <button class="admin-btn small ghost" id="cdv-modal-annuler">Annuler</button>
     </div>
   `;

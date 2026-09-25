@@ -190,7 +190,7 @@ async function initDashboard() {
   // les 20 h, décidé par la base). Silencieux : si la migration n'est pas
   // encore faite, l'appel échoue sans conséquence.
   try { await supabaseClient.rpc('lifecycle_auto'); } catch (e) { /* ignoré */ }
-  await loadSharedCache();
+  await Promise.all([loadSharedCache(), chargerDelaiSuppressionAgents()]);
   subscribeRealtime();
   renderDashboardSections();
 }
@@ -466,7 +466,7 @@ function renderDerniersColis() {
   const list = colisCache.slice(0, 10);
   tbody.innerHTML = list.length
     ? list.map(derniersColisRowHtml).join('')
-    : '<tr><td colspan="10" class="table-state">Aucun colis enregistré pour le moment.</td></tr>';
+    : `<tr><td colspan="10">${etatVide('colis', 'Aucun colis enregistré pour le moment', 'Les colis apparaîtront ici dès leur enregistrement par une agence.')}</td></tr>`;
   wireRowClickColis(tbody);
 }
 
@@ -558,7 +558,7 @@ async function loadColisPage() {
   colisRowsCache = data || [];
 
   if (!colisRowsCache.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="table-state">Aucun colis ne correspond à ces critères.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="11">${etatVide('recherche', 'Aucun colis ne correspond à ces critères', 'Élargissez la période ou retirez un filtre.')}</td></tr>`;
   } else {
     tbody.innerHTML = colisRowsCache.map(c => `
       <tr class="row-click" data-id="${c.id}">
@@ -594,26 +594,142 @@ function addOneDay(dateStr) {
 
 function renderAgentsView() {
   const tbody = document.querySelector('#table-agents tbody');
+  // Actifs d'abord, puis désactivés (suppression la plus proche en premier).
   const rows = agentsCache.map(a => ({
     a,
-    enLigne: !!a.en_ligne,
+    actif: a.actif !== false,
+    enLigne: a.actif !== false && !!a.en_ligne,
     depuis: a.en_ligne ? a.derniere_connexion : a.derniere_deconnexion
-  }));
-  tbody.innerHTML = rows.length ? rows.map(r => `
-    <tr>
+  })).sort((x, y) => (x.actif === y.actif) ? 0 : (x.actif ? -1 : 1));
+
+  tbody.innerHTML = rows.length ? rows.map(r => {
+    let compte, action;
+    if (r.actif) {
+      compte = '<span class="badge-compte ok">Actif</span>';
+      action = `<button class="admin-btn small ghost-danger btn-desactiver" data-id="${r.a.id}">Désactiver</button>`;
+    } else {
+      const j = joursAvantSuppression(r.a.desactive_le);
+      compte = `<span class="badge-compte off">Désactivé</span>
+        <div class="compte-sub">le ${formatDateTime(r.a.desactive_le)}${r.a.desactive_motif ? ' · ' + esc(r.a.desactive_motif) : ''}</div>
+        <div class="compte-sub warn">${j > 0 ? `Suppression définitive dans ${j} jour${j > 1 ? 's' : ''}` : 'Suppression au prochain passage du nettoyage'}</div>`;
+      action = `<button class="admin-btn small btn-reactiver" data-id="${r.a.id}">Réactiver</button>`;
+    }
+    return `
+    <tr class="${r.actif ? '' : 'row-desactive'}">
       <td data-label="Nom">${esc(r.a.nom_complet)}</td>
       <td data-label="Identifiant">${esc(r.a.username)}</td>
       <td data-label="E-mail">${r.a.email
         ? esc(r.a.email)
         : `<button class="admin-btn ghost small btn-add-email" data-id="${r.a.id}">Ajouter un e-mail</button>`}</td>
       <td data-label="Agence">${esc(r.a.agence)}</td>
-      <td data-label="Statut">${r.enLigne ? '<span class="badge-online">Actif</span>' : '<span class="badge-offline">Inactif</span>'}</td>
+      <td data-label="Statut">${r.enLigne ? '<span class="badge-online">En ligne</span>' : '<span class="badge-offline">Hors ligne</span>'}</td>
       <td data-label="Depuis">${r.depuis ? formatDateTime(r.depuis) : 'Jamais connecté'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="table-state">Aucun agent enregistré.</td></tr>';
+      <td data-label="Compte">${compte}</td>
+      <td data-label="Action">${action}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8">${etatVide('agents', 'Aucun agent enregistré', 'Les comptes créés avec le code d\u2019invitation apparaîtront ici.')}</td></tr>`;
 
   tbody.querySelectorAll('.btn-add-email').forEach(btn => {
     btn.addEventListener('click', () => openEditEmailModal(btn.dataset.id));
   });
+  tbody.querySelectorAll('.btn-desactiver').forEach(btn => {
+    btn.addEventListener('click', () => demanderDesactivation(btn.dataset.id));
+  });
+  tbody.querySelectorAll('.btn-reactiver').forEach(btn => {
+    btn.addEventListener('click', () => demanderReactivation(btn.dataset.id));
+  });
+}
+
+// Délai avant suppression définitive d'un compte désactivé (réglable dans
+// « Conservation des données », 30 jours par défaut).
+let delaiSuppressionAgents = 30;
+async function chargerDelaiSuppressionAgents() {
+  try {
+    const { data } = await supabaseClient.rpc('lifecycle_regles');
+    if (data && data.agents_desactives_suppression_jours) delaiSuppressionAgents = Number(data.agents_desactives_suppression_jours);
+  } catch (e) { /* valeur par défaut */ }
+}
+function joursAvantSuppression(desactiveLe) {
+  if (!desactiveLe) return delaiSuppressionAgents;
+  const fin = new Date(desactiveLe).getTime() + delaiSuppressionAgents * 86400000;
+  return Math.max(0, Math.ceil((fin - Date.now()) / 86400000));
+}
+
+function rafraichirAgentLocal(id, champs) {
+  const i = agentsCache.findIndex(x => String(x.id) === String(id));
+  if (i !== -1) agentsCache[i] = { ...agentsCache[i], ...champs };
+  renderAgentsView();
+}
+
+function demanderDesactivation(agentId) {
+  const a = agentsCache.find(x => String(x.id) === String(agentId));
+  if (!a) return;
+  cdvConfirmer({
+    titre: `Désactiver le compte de ${a.nom_complet}`,
+    texte: `<strong>${esc(a.username)}</strong> · agence de ${esc(a.agence)}<br>
+      La connexion est bloquée immédiatement (une session ouverte est coupée en moins de 2 minutes).
+      Sans réactivation sous <strong>${delaiSuppressionAgents} jours</strong>, le compte sera supprimé définitivement.
+      Ses colis, son historique, ses retraits et ses messages sont conservés.`,
+    avecMotif: true,
+    motifPlaceholder: 'Ex. : démission, licenciement, fin de contrat',
+    libelleBouton: 'Désactiver le compte',
+    action: async (mdp, motif) => {
+      const moi = getSession();
+      const { data, error } = await supabaseClient.rpc('agent_desactiver', {
+        p_admin: moi.username, p_password: mdp, p_agent_id: String(a.id), p_motif: motif
+      });
+      if (error) return { ok: false, message: messageMigrationAgents(error) };
+      if (!data || !data.ok) return { ok: false, message: (data && data.message) || 'Opération refusée.' };
+      return { ok: true, apres: () => rafraichirAgentLocal(a.id, {
+        actif: false, desactive_le: new Date().toISOString(), desactive_par: moi.username, desactive_motif: motif, en_ligne: false
+      }) };
+    }
+  });
+}
+
+function demanderReactivation(agentId) {
+  const a = agentsCache.find(x => String(x.id) === String(agentId));
+  if (!a) return;
+  cdvConfirmer({
+    titre: `Réactiver le compte de ${a.nom_complet}`,
+    texte: `<strong>${esc(a.username)}</strong> pourra de nouveau se connecter avec son mot de passe habituel. La suppression programmée est annulée.`,
+    sansDanger: true,
+    libelleBouton: 'Réactiver le compte',
+    action: async (mdp) => {
+      const moi = getSession();
+      const { data, error } = await supabaseClient.rpc('agent_reactiver', {
+        p_admin: moi.username, p_password: mdp, p_agent_id: String(a.id)
+      });
+      if (error) return { ok: false, message: messageMigrationAgents(error) };
+      if (!data || !data.ok) return { ok: false, message: (data && data.message) || 'Opération refusée.' };
+      return { ok: true, apres: () => rafraichirAgentLocal(a.id, {
+        actif: true, desactive_le: null, desactive_par: null, desactive_motif: null
+      }) };
+    }
+  });
+}
+
+function messageMigrationAgents(error) {
+  return /function|does not exist|schema cache/i.test(error.message || '')
+    ? 'Fonction absente : exécutez sql/agents_desactivation_modification_migration.sql dans Supabase.'
+    : 'Opération impossible pour le moment. Réessayez.';
+}
+
+// ---------- État vide (remplace les « Aucune donnée » en texte brut) ----------
+
+const ETAT_VIDE_ICONES = {
+  rapports: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="14" width="3" height="4" rx="1"/>',
+  agents: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/>',
+  colis: '<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
+  recherche: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'
+};
+function etatVide(type, titre, texte, actionHtml) {
+  return `<div class="etat-vide">
+    <div class="etat-vide-icone"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ETAT_VIDE_ICONES[type] || ETAT_VIDE_ICONES.recherche}</svg></div>
+    <div class="etat-vide-titre">${esc(titre)}</div>
+    ${texte ? `<div class="etat-vide-texte">${esc(texte)}</div>` : ''}
+    ${actionHtml || ''}
+  </div>`;
 }
 
 // Petite fenêtre pour ajouter/corriger l'e-mail d'un compte (nécessaire pour
@@ -669,53 +785,7 @@ function listeAgences() {
   return [...noms.entries()].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
 }
 
-// ---------- Vue : Rapports (mensuel + total annuel, par agence réelle) ----------
-
-function renderRapports() {
-  const zone = document.getElementById('rapports-zone');
-  const agences = listeAgences();
-
-  if (!agences.length) {
-    zone.innerHTML = '<div class="admin-card"><p class="muted-admin">Aucune donnée à rapporter pour le moment.</p></div>';
-    return;
-  }
-
-  zone.innerHTML = agences.map(ag => {
-    const parMois = {};
-    colisCache.filter(c => normalizeCity(c.agence) === ag.key).forEach(c => {
-      const d = new Date(c.created_at);
-      const key = d.getFullYear() * 100 + d.getMonth();
-      if (!parMois[key]) parMois[key] = { label: MOIS[d.getMonth()] + ' ' + d.getFullYear(), ordre: key, count: 0, montant: 0 };
-      parMois[key].count++;
-      parMois[key].montant += Number(c.montant_paye || 0);
-    });
-    // Colis déjà supprimés par le cycle de vie : leurs totaux viennent de stats_archive.
-    archiveCache.filter(a => normalizeCity(a.agence) === ag.key).forEach(a => {
-      const key = a.annee * 100 + (a.mois - 1);
-      if (!parMois[key]) parMois[key] = { label: MOIS[a.mois - 1] + ' ' + a.annee, ordre: key, count: 0, montant: 0 };
-      parMois[key].count += Number(a.nb_colis || 0);
-      parMois[key].montant += Number(a.montant_total || 0);
-      parMois[key].archive = true;
-    });
-    const rows = Object.values(parMois).sort((a, b) => b.ordre - a.ordre);
-    const totalCount = rows.reduce((s, r) => s + r.count, 0);
-    const totalMontant = rows.reduce((s, r) => s + r.montant, 0);
-
-    return `
-      <div class="admin-card">
-        <h3>Rapport Agence de ${esc(ag.label)}</h3>
-        <div class="admin-table-wrap"><table class="admin-table">
-          <thead><tr><th>Mois</th><th>Nombre de colis</th><th>Montant encaissé</th></tr></thead>
-          <tbody>
-            ${rows.length ? rows.map(r => `
-              <tr><td data-label="Mois">${r.label}${r.archive ? ' <span class="muted-admin" title="Inclut des colis archivés (supprimés après leur durée de conservation)">· archivé</span>' : ''}</td><td data-label="Nombre">${r.count}</td><td data-label="Montant">${formatFCFA(r.montant)}</td></tr>
-            `).join('') : '<tr><td colspan="3" class="table-state">Aucune donnée.</td></tr>'}
-            ${rows.length ? `<tr class="total-row"><td data-label="Total">Total cumulé</td><td data-label="Nombre">${totalCount}</td><td data-label="Montant">${formatFCFA(totalMontant)}</td></tr>` : ''}
-          </tbody>
-        </table></div>
-      </div>`;
-  }).join('');
-}
+// ---------- Vue : Rapports → voir js/rapports.js (tableau de bord premium) ----------
 
 // ---------- Vue : Historique des actions (recherche regroupée, sans réinitialiser) ----------
 
@@ -744,7 +814,7 @@ function applyHistoriqueFilters() {
   const zone = document.getElementById('historique-zone');
 
   if (!list.length) {
-    zone.innerHTML = '<div class="admin-card"><p class="table-state">Aucune activité trouvée.</p></div>';
+    zone.innerHTML = `<div class="admin-card">${etatVide('recherche', 'Aucune activité trouvée', 'Aucune action ne correspond à ces filtres.')}</div>`;
     return;
   }
 
@@ -871,6 +941,7 @@ function deconnexionComplete() {
   localStorage.removeItem('coligo_agent_session');
 
   colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map(); archiveCache = [];
+  if (typeof rap !== 'undefined') { if (rap.chart) rap.chart.destroy(); rap.chart = null; rap.lignes = null; rap.perime = true; rap.initialise = false; }
   Object.keys(viewLoaded).forEach(k => viewLoaded[k] = false);
 
   document.getElementById('login-username').value = '';
@@ -892,7 +963,7 @@ function openColisModal(c) {
   const content = document.getElementById('modal-content');
   content.innerHTML = `
     <h3>${esc(c.numero_suivi)}</h3>
-    <div class="modal-sub">Consultation uniquement — aucune modification possible depuis l'espace administrateur (seule la suppression d'un dossier clos est proposée).</div>
+    <div class="modal-sub">Consultation uniquement — les corrections se font par l'agent tant que le colis est « Enregistré » (seule la suppression d'un dossier clos est proposée ici).</div>
     <div class="modal-grid">
       <div><div class="k">Statut</div><div class="v">${statutBadge(c.statut)}</div></div>
       <div><div class="k">Agence</div><div class="v">${esc(c.agence) || '—'}</div></div>
@@ -908,6 +979,7 @@ function openColisModal(c) {
       <div><div class="k">Date d'enregistrement</div><div class="v">${formatDateTime(c.created_at)}</div></div>
       <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
+    <div id="modal-corrections"></div>
     ${normalizeStatut(c.statut) === 'Retiré' && typeof cdvDemanderSuppressionColis === 'function' ? `
       <p class="muted-admin" style="font-size:0.8rem; margin:0 0 10px;">Dossier clos : ce colis sera supprimé automatiquement à la fin de sa durée de conservation. Vous pouvez aussi le supprimer dès maintenant.</p>
       <button class="admin-btn admin-btn-block danger" id="btn-delete-colis" style="margin-bottom:10px;">Supprimer ce dossier clos</button>` : ''}
@@ -917,6 +989,33 @@ function openColisModal(c) {
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
   const btnDel = document.getElementById('btn-delete-colis');
   if (btnDel) btnDel.addEventListener('click', () => cdvDemanderSuppressionColis(c, false));
+  afficherCorrectionsColis(c);
+}
+
+// Corrections faites par l'agent après l'enregistrement (table colis_modifications).
+const LIBELLES_CHAMPS_COLIS = {
+  expediteur_nom: 'Expéditeur', expediteur_telephone: 'Tél. expéditeur',
+  destinataire_nom: 'Destinataire', destinataire_telephone: 'Tél. destinataire',
+  Description_du_colis: 'Description', montant_paye: 'Montant payé', valeur: 'Valeur déclarée'
+};
+async function afficherCorrectionsColis(c) {
+  const zone = document.getElementById('modal-corrections');
+  if (!zone) return;
+  const { data, error } = await supabaseClient.from('colis_modifications')
+    .select('*').eq('colis_id', String(c.id)).order('modifie_le', { ascending: false });
+  if (error || !data || !data.length || !document.getElementById('modal-corrections')) return;
+  const val = (k, v) => (k === 'montant_paye' || k === 'valeur') ? formatFCFA(v) : (esc(v) || '—');
+  zone.innerHTML = `
+    <div class="corrections-box">
+      <div class="corrections-titre">Corrigé ${data.length} fois après l'enregistrement</div>
+      ${data.map(m => `
+        <div class="correction">
+          <div class="correction-meta">${formatDateTime(m.modifie_le)} · par ${esc(m.agent)}${m.motif ? ' · ' + esc(m.motif) : ''}</div>
+          ${Object.keys(m.apres || {}).filter(k => k !== 'valeur').map(k => `
+            <div class="correction-ligne"><span>${LIBELLES_CHAMPS_COLIS[k] || esc(k)}</span>
+              <s>${val(k, (m.avant || {})[k])}</s> <b>${val(k, m.apres[k])}</b></div>`).join('')}
+        </div>`).join('')}
+    </div>`;
 }
 function closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
 document.getElementById('modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });

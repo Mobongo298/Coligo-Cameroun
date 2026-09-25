@@ -441,3 +441,34 @@ function imprimerRecu(c) {
   // Laisse le temps au contenu de s'afficher avant d'ouvrir la boîte d'impression.
   setTimeout(() => { w.print(); }, 400);
 }
+
+
+// ---------- Compte désactivé par un administrateur ----------
+// Vérifie régulièrement (toutes les 90 s et au retour sur l'onglet) que le
+// compte connecté est toujours actif. S'il a été désactivé (démission,
+// licenciement) ou supprimé, la session est coupée : on déclenche la
+// déconnexion normale puis on affiche le motif sur l'écran de connexion.
+// Sans la migration sql/agents_desactivation_modification_migration.sql,
+// l'appel échoue et rien ne se passe.
+let _surveillanceCompte = null;
+function surveillerCompteActif() {
+  if (_surveillanceCompte) return;
+  const verifier = async () => {
+    const raw = sessionStorage.getItem('coligo_agent_session');
+    if (!raw) return;
+    let a; try { a = JSON.parse(raw); } catch (e) { return; }
+    try {
+      const { data, error } = await supabaseClient.rpc('agent_compte_actif', { p_username: a.username });
+      if (error || data !== false) return;
+    } catch (e) { return; }
+    const btn = document.getElementById('btn-logout');
+    if (btn) btn.click(); else sessionStorage.clear();
+    setTimeout(() => {
+      const zone = document.getElementById('login-error');
+      if (zone) zone.innerHTML = '<div class="bg-red-50 text-red-700 border border-red-200 rounded-xl px-4 py-3 text-sm">Votre compte a été désactivé par un administrateur. Contactez votre responsable.</div>';
+    }, 500);
+  };
+  _surveillanceCompte = setInterval(verifier, 90000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) verifier(); });
+  verifier();
+}

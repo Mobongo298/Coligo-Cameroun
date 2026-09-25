@@ -41,6 +41,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 | Codes et compteurs de connexion | 24 heures | 1 heure | Auto + manuel |
 | Présence « en ligne » bloquée | 12 heures | 2 heures | Auto + manuel |
 | Journal des nettoyages | 2 ans | 180 jours | Auto + manuel |
+| Comptes agents désactivés (réactivables avant) | 30 jours | 7 jours | Auto + manuel (fiche résumée conservée dans `agents_archives`) |
 
 ## 3. Garde-fous
 
@@ -70,6 +71,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 
 1. Faire une **sauvegarde** : Supabase > Database > Backups (ou exporter les tables en CSV).
 2. Exécuter `sql/cycle_de_vie_donnees_migration.sql`. Il se termine par un **aperçu** qui ne supprime rien.
+   Puis `sql/agents_desactivation_modification_migration.sql`.
 3. Ouvrir Admin.html > Conservation des données, vérifier les chiffres « éligibles maintenant ».
 4. Si les durées vous conviennent, laisser le nettoyage automatique activé ; sinon, les ajuster d'abord.
 5. (Conseillé) Activer `pg_cron` pour un passage chaque nuit à 3 h (heure du Cameroun).
@@ -80,7 +82,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 1. **Fichier `sql/schema.sql` manquant** : le guide y fait référence mais il n'est pas dans le dossier. Pour une nouvelle installation, il faut le reconstituer (tables `colis`, `colis_historique`, `agents`).
 2. **Durée légale** : vérifiez avec votre comptable la durée de conservation exigée pour les pièces commerciales (au Cameroun comme dans l'espace OHADA, elle est souvent de 10 ans pour les documents comptables). Si c'est le cas, gardez plutôt une trace comptable (reçus, totaux) hors de l'application, ou exportez les dossiers avant suppression. Les totaux de `stats_archive` ne remplacent pas une comptabilité.
 3. **Export avant suppression** : ajouter plus tard un bouton « Exporter en CSV » des dossiers qui vont être supprimés.
-4. **Comptes agents inactifs** : ne pas les supprimer (l'historique y fait référence par identifiant), mais ajouter un statut « désactivé » qui bloque la connexion.
+4. **Comptes agents inactifs** : **appliqué** depuis — statut « désactivé » qui bloque la connexion, réactivation possible 30 jours, puis suppression du compte avec conservation de toute son activité (voir `sql/agents_desactivation_modification_migration.sql`).
 5. **Colis « en retard »** : l'indicateur compte aussi les colis Disponible qui attendent leur destinataire. Il serait plus juste de ne compter que Enregistré et En transit, les Disponible étant suivis dans « non réclamés ».
 6. **Sécurité de fond** : l'application utilise toujours la clé publique (`anon`) pour tout. La migration vers Supabase Auth, avec des règles RLS par rôle, reste l'étape la plus importante avant une montée en charge ou une revente.
 7. **Cache des 2000 derniers colis** : au-delà, le tableau de bord devient approximatif. Le cycle de vie limite ce volume, mais un calcul des totaux côté base serait plus fiable à terme.

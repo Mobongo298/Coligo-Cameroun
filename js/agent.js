@@ -60,6 +60,8 @@ function showDashboard(agent) {
   // agir : au plus une fois toutes les 20 h). Silencieux, sans effet si la
   // migration sql/cycle_de_vie_donnees_migration.sql n'est pas encore faite.
   supabaseClient.rpc('lifecycle_auto').then(() => {}, () => {});
+  // Coupe la session si un administrateur désactive ce compte.
+  surveillerCompteActif();
 }
 
 // ---------- Temps réel ----------
@@ -187,11 +189,18 @@ async function genererNumero(agence) {
   const yy = String(new Date().getFullYear()).slice(-2);
   const code = agenceCode(agence);
   // La séquence repart de 1 pour chaque agence (DLA et YDE ont chacune leur propre numérotation).
-  const { count } = await supabaseClient
-    .from('colis')
-    .select('*', { count: 'exact', head: true })
-    .eq('agence', agence);
-  const seq = String((count || 0) + 1).padStart(6, '0');
+  // On prend le plus grand des deux : nombre de colis + 1, ou dernier numéro
+  // utilisé + 1. Depuis que le cycle de vie supprime les anciens colis
+  // retirés, compter seul ferait retomber la séquence sur un numéro déjà
+  // attribué (doublon).
+  const [{ count }, { data: dernier }] = await Promise.all([
+    supabaseClient.from('colis').select('*', { count: 'exact', head: true }).eq('agence', agence),
+    supabaseClient.from('colis').select('numero_suivi').like('numero_suivi', code + '%')
+      .order('numero_suivi', { ascending: false }).limit(1)
+  ]);
+  const m = dernier && dernier[0] && String(dernier[0].numero_suivi).match(/^[A-Z]+(\d+)/);
+  const suivant = Math.max((count || 0) + 1, m ? parseInt(m[1], 10) + 1 : 1);
+  const seq = String(suivant).padStart(6, '0');
   return `${code}${seq}/${yy}`;
 }
 
@@ -574,9 +583,10 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') closeModal();
 });
 
-function voirColis(id) {
+function voirColis(id, bandeau) {
   const c = colisCache.find(x => String(x.id) === String(id));
   if (!c) return;
+  const modifiable = colisModifiable(c);
   document.getElementById('modal-content').innerHTML = `
     <h3 class="text-lg font-bold text-coligo mb-1">${esc(c.numero_suivi)}</h3>
     <p class="text-sm text-slate-500 mb-5">${badge(c.statut)}</p>
@@ -591,12 +601,112 @@ function voirColis(id) {
       <div><div class="text-xs text-slate-500">Valeur déclarée</div><div class="font-medium">${formatFCFA(c.valeur)}</div></div>
       <div class="col-span-2"><div class="text-xs text-slate-500">Description</div><div class="font-medium">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
+    ${bandeau || ''}
+    ${modifiable ? '' : `<p class="text-xs text-slate-500 mb-3">${esc(raisonNonModifiable(c))}</p>`}
     <div class="flex gap-3">
       <button onclick="closeModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">Fermer</button>
+      ${modifiable ? `<button onclick="modifierColis('${c.id}')" class="flex-1 inline-flex items-center justify-center gap-2 bg-white border border-coligo text-coligo hover:bg-coligo-light font-semibold px-4 py-2.5 rounded-xl transition">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Modifier</button>` : ''}
       <button onclick="imprimerRecu(colisCache.find(x => String(x.id) === '${c.id}'))" class="flex-1 bg-coligo hover:bg-coligo-dark text-white font-semibold px-4 py-2.5 rounded-xl transition">Imprimer le reçu</button>
     </div>
   `;
   document.getElementById('modal-backdrop').classList.remove('hidden');
+}
+
+// ---------- Correction d'un colis après l'enregistrement ----------
+// Autorisée tant que le colis est « Enregistré » et n'est sur aucun listing
+// (vérifié aussi côté base par colis_modifier, voir
+// sql/agents_desactivation_modification_migration.sql). Chaque correction est
+// tracée (avant / après, agent, date) et visible par l'administrateur.
+
+function colisModifiable(c) {
+  return normalizeStatut(c.statut) === 'Enregistré' && !c.listing_id;
+}
+function raisonNonModifiable(c) {
+  if (c.listing_id) return 'Modification impossible : ce colis est déjà sur un listing.';
+  return `Modification impossible : le colis est « ${normalizeStatut(c.statut)} ». Seul un colis encore « Enregistré » peut être corrigé.`;
+}
+
+function modifierColis(id) {
+  const c = colisCache.find(x => String(x.id) === String(id));
+  if (!c) return;
+  if (!colisModifiable(c)) { voirColis(id); return; }
+  const champ = (cle, label, type, valeur, extra) => `
+    <div>
+      <label for="m-${cle}" class="block text-xs font-medium text-slate-600 mb-1">${label}</label>
+      <input id="m-${cle}" type="${type}" value="${esc(valeur ?? '')}" ${extra || ''}
+        class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-coligo/40 focus:border-coligo">
+    </div>`;
+  document.getElementById('modal-content').innerHTML = `
+    <h3 class="text-lg font-bold text-coligo mb-1">Modifier ${esc(c.numero_suivi)}</h3>
+    <p class="text-sm text-slate-500 mb-5">Corrigez l'erreur de saisie. Le numéro de suivi, le trajet et la date ne changent pas. La correction est enregistrée dans l'historique.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      ${champ('expediteur_nom', 'Expéditeur *', 'text', c.expediteur_nom)}
+      ${champ('expediteur_telephone', 'Téléphone expéditeur', 'tel', c.expediteur_telephone)}
+      ${champ('destinataire_nom', 'Destinataire *', 'text', c.destinataire_nom)}
+      ${champ('destinataire_telephone', 'Téléphone destinataire', 'tel', c.destinataire_telephone)}
+      <div class="sm:col-span-2">
+        <label for="m-description" class="block text-xs font-medium text-slate-600 mb-1">Description du colis *</label>
+        <textarea id="m-description" rows="2" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-coligo/40 focus:border-coligo">${esc(c.Description_du_colis || '')}</textarea>
+      </div>
+      ${champ('montant_paye', 'Montant payé (FCFA) *', 'number', c.montant_paye, 'min="0" step="1"')}
+      <div>
+        <div class="block text-xs font-medium text-slate-600 mb-1">Valeur déclarée (10 × montant)</div>
+        <div id="m-valeur" class="bg-coligo-light rounded-xl px-3 py-2.5 text-sm font-semibold text-coligo-dark">${formatFCFA((Number(c.montant_paye) || 0) * 10)}</div>
+      </div>
+      <div class="sm:col-span-2">
+        ${champ('motif', 'Raison de la correction (facultatif)', 'text', '', 'maxlength="200" placeholder="Ex. : nom mal orthographié, mauvais montant"')}
+      </div>
+    </div>
+    <div id="m-erreur" class="mb-3"></div>
+    <div class="flex gap-3">
+      <button id="m-annuler" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">Annuler</button>
+      <button id="m-enregistrer" class="flex-1 bg-coligo hover:bg-coligo-dark text-white font-semibold px-4 py-2.5 rounded-xl transition">Enregistrer la correction</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+  document.getElementById('m-montant_paye').addEventListener('input', (e) => {
+    document.getElementById('m-valeur').textContent = formatFCFA((parseFloat(e.target.value) || 0) * 10);
+  });
+  document.getElementById('m-annuler').addEventListener('click', () => voirColis(id));
+  document.getElementById('m-enregistrer').addEventListener('click', async () => {
+    const btn = document.getElementById('m-enregistrer');
+    const zone = document.getElementById('m-erreur');
+    zone.innerHTML = '';
+    const v = k => document.getElementById('m-' + k).value.trim();
+    const tel = t => (t === '+237' ? '' : t);
+    const champs = {
+      expediteur_nom: v('expediteur_nom'),
+      expediteur_telephone: tel(v('expediteur_telephone')),
+      destinataire_nom: v('destinataire_nom'),
+      destinataire_telephone: tel(v('destinataire_telephone')),
+      Description_du_colis: document.getElementById('m-description').value.trim(),
+      montant_paye: parseFloat(v('montant_paye'))
+    };
+    if (!champs.expediteur_nom || !champs.destinataire_nom || !champs.Description_du_colis || isNaN(champs.montant_paye) || champs.montant_paye < 0) {
+      zone.innerHTML = msgError("Complétez l'expéditeur, le destinataire, la description et un montant valide.");
+      return;
+    }
+    setBtnLoading(btn, 'Enregistrement…');
+    const agent = getSession();
+    const { data, error } = await supabaseClient.rpc('colis_modifier', {
+      p_username: agent.username, p_colis_id: String(c.id), p_champs: champs, p_motif: v('motif') || null
+    });
+    clearBtnLoading(btn);
+    if (error) {
+      zone.innerHTML = msgError(/function|schema cache|does not exist/i.test(error.message || '')
+        ? "La modification n'est pas encore activée : l'administrateur doit exécuter sql/agents_desactivation_modification_migration.sql."
+        : 'Erreur lors de la modification. Réessayez.');
+      return;
+    }
+    if (!data || !data.ok) { zone.innerHTML = msgError((data && data.message) || 'Modification refusée.'); return; }
+
+    const i = colisCache.findIndex(x => String(x.id) === String(c.id));
+    if (i !== -1 && data.colis) colisCache[i] = data.colis;
+    renderTable();
+    voirColis(c.id, msgSuccess('Correction enregistrée. Pensez à réimprimer le reçu si le client l\u2019a déjà reçu.').replace('rounded-lg px-4 py-3 text-sm', 'rounded-lg px-4 py-3 text-sm mb-4'));
+  });
 }
 
 // ---------- Initialisation ----------

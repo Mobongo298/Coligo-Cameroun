@@ -187,8 +187,8 @@
         <h2 class="view-title">Agents</h2>
         <div class="admin-card">
           <div class="admin-table-wrap"><table class="admin-table" id="table-agents">
-            <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Agence</th><th>Statut</th><th>Depuis</th></tr></thead>
-            <tbody><tr><td colspan="5" class="table-state">Chargement…</td></tr></tbody>
+            <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Agence</th><th>Statut</th><th>Depuis</th><th>Compte</th><th></th></tr></thead>
+            <tbody><tr><td colspan="8" class="table-state">Chargement…</td></tr></tbody>
           </table></div>
         </div>
       </section>
@@ -301,5 +301,11 @@
 <script src="js/admin.js"></script>
 <script src="js/messagerie.js"></script>
 <script src="js/cycle-vie.js"></script>
+<!-- Rapports : graphique (Chart.js), export PDF (jsPDF + AutoTable), export Excel (SheetJS) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/rapports.js"></script>
 </body>
 </html>

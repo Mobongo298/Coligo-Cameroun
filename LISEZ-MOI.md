@@ -179,6 +179,28 @@ colis retirés à 365 jours (leurs chiffres restent dans les Rapports grâce à 
 messages à 180 jours, codes et compteurs techniques à 24 heures, listings vides à 30 jours, journal à 2 ans.
 Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
 
+## Étape 1septies — Modification des colis, désactivation des agents et Rapports
+
+1. **SQL Editor > New query**.
+2. Si vous aviez déjà exécuté `sql/cycle_de_vie_donnees_migration.sql` d'une version précédente,
+   **relancez-le** (il ajoute la règle « Comptes agents désactivés », 30 jours). Il peut être relancé sans risque.
+3. Ouvrez `sql/agents_desactivation_modification_migration.sql`, copiez tout, collez, **Run**.
+   → À faire **après** la migration du cycle de vie.
+4. Ce que cela apporte :
+   - **Espace agent** : en cliquant sur un colis, un bouton **Modifier** apparaît entre Fermer et
+     Imprimer le reçu. Il est disponible tant que le colis est « Enregistré » et n'est pas encore sur
+     un listing. Numéro de suivi, trajet et date ne changent pas ; chaque correction est gardée
+     (avant / après) et visible par l'admin sur la fiche du colis. Pensez à réimprimer le reçu.
+   - **Admin > Agents** : bouton **Désactiver** (motif + mot de passe administrateur). La connexion
+     est bloquée tout de suite (une session ouverte est coupée en moins de 2 minutes). Bouton
+     **Réactiver** possible pendant 30 jours ; ensuite le compte est supprimé définitivement de la
+     table `agents`, mais ses colis, son historique, ses retraits et ses messages restent, et une
+     fiche résumée (sans mot de passe) est gardée dans `agents_archives`. L'identifiant ne peut plus
+     être réutilisé.
+   - **Admin > Rapports** : tableau de bord avec 4 indicateurs, graphique Douala / Yaoundé par mois,
+     filtre de dates et exports **PDF** et **Excel**. Ces fonctions utilisent des bibliothèques en
+     ligne (Chart.js, jsPDF, SheetJS) : une connexion internet est nécessaire, comme pour Supabase.
+
 ## Important à savoir sur la sécurité
 
 Les mots de passe sont maintenant hachés et jamais comparés depuis le navigateur — la

@@ -59,6 +59,8 @@ function showDashboard(agent) {
     }
     if (data && data.execute) chargerHistorique();
   });
+  // Coupe la session si un administrateur désactive ce compte.
+  surveillerCompteActif();
 }
 
 // ---------- Navigation latérale ----------
