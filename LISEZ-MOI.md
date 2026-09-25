@@ -66,8 +66,7 @@ cinq pages suivent automatiquement.
 ## Étape 3 — Mettre le site en ligne (gratuit, sans terminal)
 
 La méthode la plus simple, **Netlify Drop** :
-https://app.netlify.com/drop
-1. Allez sur ****
+1. Allez sur **https://app.netlify.com/drop**
 2. Faites glisser **tout le dossier `coligo`** (celui qui contient `index.html`, `agent.html`, `css`, `js`) directement dans la page.
 3. En quelques secondes, Netlify vous donne une adresse du type `https://votre-site.netlify.app`.
 4. C'est cette adresse que vous partagez avec vos clients et vos agents. Elle fonctionne depuis un téléphone comme depuis un ordinateur, sans rien installer.
@@ -154,6 +153,31 @@ Le script `sql/schema.sql` active déjà la réplication temps réel pour les ta
    identifiant, le compte est verrouillé 15 minutes.
 3. Peut être exécuté avant ou après `sql/reset_password_migration.sql`, l'ordre n'a
    pas d'importance.
+
+## Étape 1sexies — Cycle de vie des données (conservation et suppression)
+
+1. Toujours dans **SQL Editor > New query**.
+2. Ouvrez `sql/cycle_de_vie_donnees_migration.sql`, copiez tout, collez, **Run**.
+   → À faire **après** toutes les autres migrations. Le fichier se termine par un aperçu de ce qui
+   serait nettoyé aujourd'hui : **il ne supprime rien à ce moment-là**.
+3. Dans `Admin.html`, un nouveau menu **Conservation des données** apparaît :
+   - le cycle d'un colis et les durées en vigueur ;
+   - ce qui peut être nettoyé aujourd'hui, catégorie par catégorie, avec un bouton
+     **Nettoyer maintenant** (mot de passe administrateur demandé) ;
+   - la liste des **colis non réclamés** (Disponible depuis longtemps), jamais supprimés
+     automatiquement : suppression manuelle possible après le délai choisi, avec un motif ;
+   - les **règles de conservation**, modifiables (mot de passe demandé, minimums imposés) ;
+   - le **journal** de chaque nettoyage, automatique ou manuel.
+4. Le nettoyage automatique se lance tout seul, au plus une fois toutes les 20 heures, dès qu'un
+   espace (agent, retraits ou admin) est ouvert. Pour un passage garanti chaque nuit même si personne
+   ne se connecte, activez `pg_cron` (Database > Extensions) et lancez les 2 lignes indiquées à la fin
+   du fichier SQL.
+5. `sql/nettoyage_retraits_1an.sql` est désormais **obsolète** : ne le relancez plus.
+
+Durées par défaut : anonymisation des CNI et téléphones à 90 jours après le retrait, suppression des
+colis retirés à 365 jours (leurs chiffres restent dans les Rapports grâce à la table `stats_archive`),
+messages à 180 jours, codes et compteurs techniques à 24 heures, listings vides à 30 jours, journal à 2 ans.
+Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
 
 ## Important à savoir sur la sécurité
 

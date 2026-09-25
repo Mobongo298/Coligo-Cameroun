@@ -142,7 +142,7 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 
 // ---------- Navigation (sidebar + mobile) ----------
 
-const viewLoaded = { dashboard: false, colis: false, agents: false, rapports: false, historique: false, messagerie: false, invitation: false, parametres: false };
+const viewLoaded = { dashboard: false, colis: false, agents: false, rapports: false, historique: false, messagerie: false, invitation: false, conservation: false, parametres: false };
 const viewDirty = { dashboard: true, agents: true, rapports: true };
 
 function switchView(name) {
@@ -158,6 +158,7 @@ function switchView(name) {
   if (name === 'historique' && !viewLoaded.historique) { initHistoriqueView(); viewLoaded.historique = true; }
   if (name === 'messagerie' && typeof msgChargerBoite === 'function') { msgChargerBoite(); viewLoaded.messagerie = true; }
   if (name === 'invitation' && !viewLoaded.invitation) { loadInviteCode(); viewLoaded.invitation = true; }
+  if (name === 'conservation' && typeof initCycleVie === 'function') { initCycleVie(); viewLoaded.conservation = true; }
   if (name === 'parametres' && !viewLoaded.parametres) { renderParametres(); viewLoaded.parametres = true; }
 }
 
@@ -180,8 +181,15 @@ let agentsCache = [];
 let listingsCache = new Map(); // id (numérique) -> ligne listings
 let trueTotalCount = 0;
 let ancienStatutMap = new Map(); // id historique -> ancien statut
+// Totaux des colis déjà supprimés par le cycle de vie (sql/cycle_de_vie_donnees_migration.sql).
+// Sans ce cache, les rapports et le montant total baisseraient à chaque nettoyage.
+let archiveCache = [];
 
 async function initDashboard() {
+  // Passage automatique du cycle de vie des données (au plus une fois toutes
+  // les 20 h, décidé par la base). Silencieux : si la migration n'est pas
+  // encore faite, l'appel échoue sans conséquence.
+  try { await supabaseClient.rpc('lifecycle_auto'); } catch (e) { /* ignoré */ }
   await loadSharedCache();
   subscribeRealtime();
   renderDashboardSections();
@@ -201,6 +209,9 @@ async function loadSharedCache() {
   histCache = histErr ? [] : (hist || []);
   agentsCache = agentsErr ? [] : (agents || []);
   listingsCache = new Map((listingsErr ? [] : (listings || [])).map(l => [l.id, l]));
+
+  const { data: archive, error: archiveErr } = await supabaseClient.from('stats_archive').select('*');
+  archiveCache = archiveErr ? [] : (archive || []);
 
   computeAncienStatutMap();
 }
@@ -374,13 +385,16 @@ function renderDashboardSections() {
 function renderStatCards() {
   const zone = document.getElementById('stats-row');
   const transit = colisCache.filter(c => normalizeStatut(c.statut) === 'En transit').length;
-  const montant = colisCache.reduce((s, c) => s + Number(c.montant_paye || 0), 0);
+  const montantActif = colisCache.reduce((s, c) => s + Number(c.montant_paye || 0), 0);
+  const montantArchive = archiveCache.reduce((s, a) => s + Number(a.montant_total || 0), 0);
+  const montant = montantActif + montantArchive;
   const retard = colisCache.filter(isLate).length;
 
   zone.innerHTML = `
     <div class="hero-card hero-done">
       <div class="hero-label">Montant total encaissé</div>
       <div class="hero-num hero-num-money">${formatFCFA(montant)}</div>
+      ${montantArchive ? `<div class="hero-sub" style="color:var(--muted);">dont ${formatFCFA(montantArchive)} de colis archivés</div>` : ''}
     </div>
     <div class="hero-card hero-transit">
       <div class="hero-label">En transit</div>
@@ -651,6 +665,7 @@ function listeAgences() {
   const noms = new Map(); // clé normalisée -> libellé affiché
   colisCache.forEach(c => { if (c.agence) noms.set(normalizeCity(c.agence), String(c.agence).trim()); });
   agentsCache.forEach(a => { if (a.agence) noms.set(normalizeCity(a.agence), String(a.agence).trim()); });
+  archiveCache.forEach(a => { if (a.agence && !noms.has(normalizeCity(a.agence))) noms.set(normalizeCity(a.agence), String(a.agence).trim()); });
   return [...noms.entries()].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
 }
 
@@ -674,6 +689,14 @@ function renderRapports() {
       parMois[key].count++;
       parMois[key].montant += Number(c.montant_paye || 0);
     });
+    // Colis déjà supprimés par le cycle de vie : leurs totaux viennent de stats_archive.
+    archiveCache.filter(a => normalizeCity(a.agence) === ag.key).forEach(a => {
+      const key = a.annee * 100 + (a.mois - 1);
+      if (!parMois[key]) parMois[key] = { label: MOIS[a.mois - 1] + ' ' + a.annee, ordre: key, count: 0, montant: 0 };
+      parMois[key].count += Number(a.nb_colis || 0);
+      parMois[key].montant += Number(a.montant_total || 0);
+      parMois[key].archive = true;
+    });
     const rows = Object.values(parMois).sort((a, b) => b.ordre - a.ordre);
     const totalCount = rows.reduce((s, r) => s + r.count, 0);
     const totalMontant = rows.reduce((s, r) => s + r.montant, 0);
@@ -685,9 +708,9 @@ function renderRapports() {
           <thead><tr><th>Mois</th><th>Nombre de colis</th><th>Montant encaissé</th></tr></thead>
           <tbody>
             ${rows.length ? rows.map(r => `
-              <tr><td data-label="Mois">${r.label}</td><td data-label="Nombre">${r.count}</td><td data-label="Montant">${formatFCFA(r.montant)}</td></tr>
+              <tr><td data-label="Mois">${r.label}${r.archive ? ' <span class="muted-admin" title="Inclut des colis archivés (supprimés après leur durée de conservation)">· archivé</span>' : ''}</td><td data-label="Nombre">${r.count}</td><td data-label="Montant">${formatFCFA(r.montant)}</td></tr>
             `).join('') : '<tr><td colspan="3" class="table-state">Aucune donnée.</td></tr>'}
-            ${rows.length ? `<tr class="total-row"><td data-label="Total">Total annuel</td><td data-label="Nombre">${totalCount}</td><td data-label="Montant">${formatFCFA(totalMontant)}</td></tr>` : ''}
+            ${rows.length ? `<tr class="total-row"><td data-label="Total">Total cumulé</td><td data-label="Nombre">${totalCount}</td><td data-label="Montant">${formatFCFA(totalMontant)}</td></tr>` : ''}
           </tbody>
         </table></div>
       </div>`;
@@ -847,7 +870,7 @@ function deconnexionComplete() {
   localStorage.removeItem('coligo_admin_session');
   localStorage.removeItem('coligo_agent_session');
 
-  colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map();
+  colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map(); archiveCache = [];
   Object.keys(viewLoaded).forEach(k => viewLoaded[k] = false);
 
   document.getElementById('login-username').value = '';
@@ -869,7 +892,7 @@ function openColisModal(c) {
   const content = document.getElementById('modal-content');
   content.innerHTML = `
     <h3>${esc(c.numero_suivi)}</h3>
-    <div class="modal-sub">Consultation uniquement — aucune modification possible depuis l'espace administrateur.</div>
+    <div class="modal-sub">Consultation uniquement — aucune modification possible depuis l'espace administrateur (seule la suppression d'un dossier clos est proposée).</div>
     <div class="modal-grid">
       <div><div class="k">Statut</div><div class="v">${statutBadge(c.statut)}</div></div>
       <div><div class="k">Agence</div><div class="v">${esc(c.agence) || '—'}</div></div>
@@ -885,10 +908,15 @@ function openColisModal(c) {
       <div><div class="k">Date d'enregistrement</div><div class="v">${formatDateTime(c.created_at)}</div></div>
       <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
+    ${normalizeStatut(c.statut) === 'Retiré' && typeof cdvDemanderSuppressionColis === 'function' ? `
+      <p class="muted-admin" style="font-size:0.8rem; margin:0 0 10px;">Dossier clos : ce colis sera supprimé automatiquement à la fin de sa durée de conservation. Vous pouvez aussi le supprimer dès maintenant.</p>
+      <button class="admin-btn admin-btn-block danger" id="btn-delete-colis" style="margin-bottom:10px;">Supprimer ce dossier clos</button>` : ''}
     <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
   `;
   document.getElementById('modal-backdrop').classList.remove('hidden');
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+  const btnDel = document.getElementById('btn-delete-colis');
+  if (btnDel) btnDel.addEventListener('click', () => cdvDemanderSuppressionColis(c, false));
 }
 function closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
 document.getElementById('modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });

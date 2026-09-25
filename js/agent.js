@@ -56,6 +56,10 @@ function showDashboard(agent) {
   loadListingsPendants();
   demarrerTempsReel(agent);
   if (typeof initMessagerie === 'function') initMessagerie();
+  // Passage automatique du cycle de vie des données (la base décide s'il faut
+  // agir : au plus une fois toutes les 20 h). Silencieux, sans effet si la
+  // migration sql/cycle_de_vie_donnees_migration.sql n'est pas encore faite.
+  supabaseClient.rpc('lifecycle_auto').then(() => {}, () => {});
 }
 
 // ---------- Temps réel ----------

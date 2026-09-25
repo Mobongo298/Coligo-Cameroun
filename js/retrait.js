@@ -48,11 +48,16 @@ function showDashboard(agent) {
   chargerColisAgenceOpposee();
   demarrerTempsReel(agent);
   if (typeof initMessagerie === 'function') initMessagerie();
-  // Nettoyage silencieux des retraits vieux de plus d'1 an (voir
-  // sql/nettoyage_retraits_1an.sql). Aucun message affiché : c'est de
-  // la maintenance de fond, pas une action de l'agent.
-  supabaseClient.rpc('nettoyer_retraits_expires').then(({ error }) => {
-    if (!error) chargerHistorique();
+  // Passage automatique du cycle de vie des données (voir
+  // sql/cycle_de_vie_donnees_migration.sql) : anonymisation, archivage puis
+  // suppression selon les règles définies par l'administrateur. La base
+  // décide elle-même s'il faut agir (au plus une fois toutes les 20 h).
+  // Repli sur l'ancienne fonction si la nouvelle migration n'est pas faite.
+  supabaseClient.rpc('lifecycle_auto').then(({ data, error }) => {
+    if (error) {
+      return supabaseClient.rpc('nettoyer_retraits_expires').then(({ error: e2 }) => { if (!e2) chargerHistorique(); });
+    }
+    if (data && data.execute) chargerHistorique();
   });
 }
 

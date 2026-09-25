@@ -50,7 +50,7 @@ async function rechercher() {
     return;
   }
   if (!colis) {
-    errorZone.innerHTML = msgErreur(`Aucun colis trouvé avec le numéro « ${numero} ». Vérifiez le numéro figurant sur votre reçu.`);
+    errorZone.innerHTML = msgErreur(`Aucun colis trouvé avec le numéro « ${numero} ». Vérifiez le numéro figurant sur votre reçu. Les colis retirés depuis longtemps ne sont plus consultables en ligne : pour toute question, contactez votre agence.`);
     return;
   }
 
