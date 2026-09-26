@@ -7,10 +7,11 @@
   jamais afficher d'information périmée ou fausse.
 */
 
-const CACHE_NAME = "coligo-shell-v1";
+const CACHE_NAME = "coligo-shell-v2";
 
 const SHELL_FILES = [
   "./index.html",
+  "./hub.html",
   "./agent.html",
   "./Admin.html",
   "./retrait.html",

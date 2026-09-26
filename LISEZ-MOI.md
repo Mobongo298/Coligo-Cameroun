@@ -314,3 +314,10 @@ Chaque app apparaît alors avec sa propre icône COLIGO, sans barre d'adresse, c
 
 ### Important à héberger
 Tout doit rester servi en **HTTPS** (Netlify le fait déjà par défaut) — une PWA ne s'installe pas en `http://` simple (sauf en local).
+
+## Mise à jour PWA — page de sélection d'espace (26/09/2026)
+
+- Nouvelle page `hub.html` : c'est elle qui s'ouvre maintenant au lancement de l'app agent (`manifest-agent.json` → `start_url`). Elle affiche 3 cartes : **Agent**, **Retrait**, **Administration**.
+- Dans `agent.html`, `retrait.html` et `Admin.html`, un lien **« Changer d'espace »** a été ajouté juste au-dessus du bouton de déconnexion, dans le menu latéral. Il ramène vers `hub.html` sans se déconnecter.
+- L'espace **client** (`index.html` / `manifest-client.json`) reste totalement séparé, dans sa propre app installable.
+- Les icônes de l'app (écran d'accueil du téléphone) ont été régénérées sur **fond blanc** (logo bleu COLIGO sur blanc) plutôt que sur fond bleu foncé.

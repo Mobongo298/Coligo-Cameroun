@@ -7,7 +7,7 @@
   "id": "coligo-client",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#F4F7FA",
+  "background_color": "#FFFFFF",
   "theme_color": "#1D6FA8",
   "lang": "fr",
   "icons": [

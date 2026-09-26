@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLIGO — Choisir un espace</title>
+<link rel="manifest" href="manifest-agent.json">
+<meta name="theme-color" content="#0C3F65">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="js/pwa-register.js"></script>
+<link rel="icon" type="image/png" href="assets/favicon-coligo.png">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  body { margin: 0; min-height: 100vh; }
+  .hub-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+  .hub-logo { width: 168px; margin-bottom: 28px; }
+  .hub-title {
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    margin: 0 0 28px;
+    text-shadow: 0 2px 10px rgba(0,0,0,.45);
+  }
+  .hub-grid {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .hub-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.96);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-decoration: none;
+    box-shadow: var(--lift-2);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .hub-card:hover { transform: translateY(-2px); box-shadow: var(--lift-3); }
+  .hub-card-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--brand-wash);
+    color: var(--brand-deep);
+    flex-shrink: 0;
+  }
+  .hub-card-icon svg { width: 24px; height: 24px; }
+  .hub-card-text { min-width: 0; }
+  .hub-card-title { font-family: var(--font-display); font-weight: 700; color: var(--ink); font-size: 1rem; }
+  .hub-card-sub { color: var(--muted); font-size: .85rem; margin-top: 2px; }
+  .hub-foot { margin-top: 28px; text-align: center; }
+  .hub-foot a {
+    color: #fff; font-size: .85rem; text-decoration: underline;
+    opacity: .85; text-shadow: 0 1px 6px rgba(0,0,0,.4);
+  }
+</style>
+</head>
+<body class="app-bg">
+
+  <div class="hub-wrap">
+    <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="hub-logo">
+    <p class="hub-title">Choisissez votre espace</p>
+
+    <div class="hub-grid">
+      <a href="agent.html" class="hub-card">
+        <span class="hub-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M12 9.5v5M9.5 12h5"/></svg>
+        </span>
+        <span class="hub-card-text">
+          <span class="hub-card-title">Agent</span><br>
+          <span class="hub-card-sub">Enregistrer et suivre les colis d'une agence</span>
+        </span>
+      </a>
+
+      <a href="retrait.html" class="hub-card">
+        <span class="hub-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg>
+        </span>
+        <span class="hub-card-text">
+          <span class="hub-card-title">Retrait</span><br>
+          <span class="hub-card-sub">Remettre les colis aux destinataires</span>
+        </span>
+      </a>
+
+      <a href="Admin.html" class="hub-card">
+        <span class="hub-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .33 1.78l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.78-.33 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.33l-.07.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.6 14.5 1.6 1.6 0 0 0 3.14 13.5H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.46-1.05 1.6 1.6 0 0 0-.32-1.77l-.07-.07a2 2 0 1 1 2.83-2.83l.06.06a1.6 1.6 0 0 0 1.78.33h.08A1.6 1.6 0 0 0 10 2.74V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.46 1.6 1.6 0 0 0 1.78-.32l.06-.07a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.33 1.78V9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.47 1z"/></svg>
+        </span>
+        <span class="hub-card-text">
+          <span class="hub-card-title">Administration</span><br>
+          <span class="hub-card-sub">Statistiques, agents et rapports</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="hub-foot">
+      <a href="signup.html">Créer un compte agent ou responsable</a>
+    </div>
+  </div>
+
+</body>
+</html>
