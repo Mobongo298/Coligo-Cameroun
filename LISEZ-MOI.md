@@ -252,6 +252,19 @@ Aucun script à exécuter.
    d'Open-Meteo (gratuit, sans clé) et se mettent à jour toutes les 10 minutes.
    Aucun script SQL n'est nécessaire.
 
+## Étape 1duodecies — Correctif messagerie agent et météo animée
+
+1. **Messagerie de l'agent** : elle ne s'affichait plus, à cause d'une balise `</div>` en trop
+   dans la vue « Historique des listings » (agent.html). Cette balise fermait la page trop tôt :
+   la section Messagerie se retrouvait en dehors de la zone d'affichage. Elle est supprimée et la
+   structure des pages a été revérifiée.
+2. **Tableau de bord** : les cartes « Aperçu du jour » et « Météo » sont plus compactes. La carte
+   météo a un fond animé qui suit le temps actuel de la ville de l'agence : soleil et rayons,
+   nuages qui défilent, pluie qui tombe, orage avec éclairs, nuit étoilée avec lune, brouillard.
+   La couleur du texte s'adapte au fond (texte blanc sur les fonds sombres, texte foncé sur le
+   brouillard) et un voile assure la lisibilité. Les villes défilent horizontalement.
+   Les animations sont coupées si l'appareil demande de réduire les animations.
+
 ## Impression du reçu
 
 Le reçu est imprimé en double (exemplaire client + exemplaire agence) sur **une seule page (1/1)**,

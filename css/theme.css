@@ -601,41 +601,151 @@ table.tf-2 tbody td .badge-statut { padding: 2px 7px; font-size: 0.64rem; }
   background: linear-gradient(145deg, #0C3F65 0%, #1D6FA8 70%, #368AC8 100%);
   color: #fff;
   box-shadow: var(--lift-2, 0 10px 24px -12px rgba(12,63,101,.45));
-  min-height: 210px;
+  min-height: 168px;
 }
 .apercu-agence {
   font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
-  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1.08;
   letter-spacing: -0.01em;
 }
-.apercu-date {
-  font-size: clamp(1.1rem, 1.8vw, 1.35rem);
-  font-weight: 700;
-  line-height: 1.25;
-}
+.apercu-date { font-size: 1.05rem; font-weight: 700; line-height: 1.25; }
 .apercu-heure {
-  font-size: 1rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,.8);
   font-variant-numeric: tabular-nums;
 }
-.meteo-carte { box-shadow: var(--lift-1, 0 2px 6px rgba(12,63,101,.08)); }
+
+/* ---------- Carte météo : fond animé + texte adapté ---------- */
+.meteo-carte {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 168px;
+  box-shadow: var(--lift-2, 0 10px 24px -12px rgba(12,63,101,.45));
+  border: 1px solid rgba(255,255,255,.35);
+}
+.meteo-fond { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.meteo-contenu { position: relative; }
+.mf-ciel { position: absolute; inset: 0; transition: background .8s ease; }
+.mf-voile { position: absolute; inset: 0; }
+
+/* Ciels */
+.meteo-scene-soleil .mf-ciel      { background: linear-gradient(160deg, #1B78C9 0%, #3E9BE0 55%, #7CC3F2 100%); }
+.meteo-scene-nuageux .mf-ciel     { background: linear-gradient(160deg, #2A6FA8 0%, #5A93C2 60%, #93B9D8 100%); }
+.meteo-scene-couvert .mf-ciel     { background: linear-gradient(160deg, #4B5D72 0%, #6E8095 60%, #8D9CAD 100%); }
+.meteo-scene-bruine .mf-ciel      { background: linear-gradient(160deg, #405468 0%, #62788E 100%); }
+.meteo-scene-pluie .mf-ciel       { background: linear-gradient(160deg, #2D3E52 0%, #4A6078 60%, #5E7389 100%); }
+.meteo-scene-pluie-nuit .mf-ciel  { background: linear-gradient(160deg, #0E1726 0%, #1E2D44 100%); }
+.meteo-scene-orage .mf-ciel       { background: linear-gradient(160deg, #161C2B 0%, #2B3548 55%, #3C4659 100%); }
+.meteo-scene-brouillard .mf-ciel  { background: linear-gradient(160deg, #C9D3DD 0%, #E3E8EE 100%); }
+.meteo-scene-nuit .mf-ciel        { background: linear-gradient(160deg, #0A1430 0%, #172A55 60%, #25407A 100%); }
+.meteo-scene-nuit-nuageux .mf-ciel{ background: linear-gradient(160deg, #111A2E 0%, #26334D 100%); }
+
+/* Voile de lisibilité : plus dense du côté du texte */
+.meteo-texte-sombre .mf-voile { background: linear-gradient(90deg, rgba(5,15,30,.42) 0%, rgba(5,15,30,.18) 55%, rgba(5,15,30,.05) 100%); }
+.meteo-texte-clair  .mf-voile { background: linear-gradient(90deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.2) 60%, rgba(255,255,255,0) 100%); }
+
+/* Couleurs du texte selon le fond */
+.meteo-texte-sombre { color: #fff; }
+.meteo-texte-sombre .meteo-titre { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.meteo-texte-sombre .meteo-sous  { color: rgba(255,255,255,.88); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.meteo-texte-sombre .meteo-temp  { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.meteo-texte-clair { color: #0F2A44; }
+.meteo-texte-clair .meteo-titre { color: #0F2A44; }
+.meteo-texte-clair .meteo-sous  { color: #334B63; }
+.meteo-texte-clair .meteo-temp  { color: #0C3F65; }
+
 .meteo-temp {
   font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
-  font-size: 2.6rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #0C3F65;
+  font-size: 2rem; font-weight: 800; line-height: 1.05;
   font-variant-numeric: tabular-nums;
 }
+.meteo-icone-principale svg { filter: drop-shadow(0 3px 6px rgba(0,0,0,.25)); }
+
+/* Villes : petites pastilles « verre dépoli », défilement horizontal si besoin */
+.meteo-villes {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: thin;
+}
 .meteo-ville {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid #E5EAF0;
-  border-radius: 12px;
-  background: #F8FAFC;
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 9px 5px 6px;
+  border-radius: 10px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.meteo-texte-sombre .meteo-ville { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28); }
+.meteo-texte-clair  .meteo-ville { background: rgba(255,255,255,.65); border: 1px solid rgba(15,42,68,.12); }
+.meteo-ville-nom  { font-size: 10.5px; line-height: 1.1; opacity: .9; max-width: 78px; }
+.meteo-ville-temp { font-size: 13px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+
+/* Soleil */
+.mf-soleil {
+  position: absolute; top: -34px; right: -26px; width: 130px; height: 130px; border-radius: 50%;
+  background: radial-gradient(circle, #FFE58A 0%, #FFC83D 45%, rgba(255,200,61,0) 72%);
+  animation: mf-pulse 5s ease-in-out infinite;
+}
+.meteo-scene-nuageux .mf-soleil { opacity: .8; }
+.mf-rayons {
+  position: absolute; inset: -40px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,230,140,.28) 0deg 8deg, transparent 8deg 22deg);
+  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%);
+  animation: mf-tourne 40s linear infinite;
+}
+/* Lune et étoiles */
+.mf-lune {
+  position: absolute; top: 14px; right: 26px; width: 46px; height: 46px; border-radius: 50%;
+  box-shadow: inset -12px 4px 0 0 #F3F0D7; filter: drop-shadow(0 0 12px rgba(243,240,215,.45));
+}
+.mf-etoile {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
+  animation: mf-scintille 3s ease-in-out infinite;
+}
+/* Nuages */
+.mf-nuage {
+  position: absolute; left: -40%; width: 150px; height: 46px; border-radius: 46px;
+  background: rgba(255,255,255,.78);
+  transform: scale(var(--echelle, 1));
+  animation: mf-derive 55s linear infinite;
+}
+.mf-nuage::before, .mf-nuage::after { content: ""; position: absolute; background: inherit; border-radius: 50%; }
+.mf-nuage::before { width: 62px; height: 62px; top: -30px; left: 24px; }
+.mf-nuage::after  { width: 82px; height: 82px; top: -44px; left: 62px; }
+.meteo-scene-couvert .mf-nuage, .meteo-scene-bruine .mf-nuage { background: rgba(214,222,232,.55); }
+.meteo-scene-pluie .mf-nuage, .meteo-scene-pluie-nuit .mf-nuage,
+.meteo-scene-orage .mf-nuage, .meteo-scene-nuit-nuageux .mf-nuage { background: rgba(120,135,158,.45); }
+.meteo-scene-brouillard .mf-nuage { background: rgba(255,255,255,.7); }
+/* Pluie */
+.mf-pluie { position: absolute; inset: 0; transform: rotate(8deg) scale(1.15); }
+.mf-pluie span {
+  position: absolute; top: -20%; width: 1.5px; height: 16px; border-radius: 2px;
+  background: linear-gradient(to bottom, rgba(210,230,255,0), rgba(210,230,255,.95));
+  animation: mf-tombe .8s linear infinite;
+}
+.meteo-scene-bruine .mf-pluie span { height: 8px; }
+/* Orage */
+.mf-eclair { position: absolute; inset: 0; background: rgba(235,240,255,.9); opacity: 0; animation: mf-flash 7s infinite; }
+.mf-foudre {
+  position: absolute; top: 6px; right: 18%; width: 26px; height: 78px; fill: #FFE68A;
+  filter: drop-shadow(0 0 10px rgba(255,230,138,.9)); opacity: 0; animation: mf-flash 7s infinite;
+}
+/* Brouillard */
+.mf-brume { position: absolute; left: -50%; width: 200%; height: 40px; border-radius: 40px; background: rgba(255,255,255,.6); filter: blur(10px); }
+.mf-brume-1 { top: 35%; animation: mf-glisse 18s ease-in-out infinite alternate; }
+.mf-brume-2 { top: 68%; animation: mf-glisse 24s ease-in-out infinite alternate-reverse; }
+
+@keyframes mf-tourne { to { transform: rotate(360deg); } }
+@keyframes mf-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes mf-scintille { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes mf-derive { from { left: -40%; } to { left: 110%; } }
+@keyframes mf-tombe { from { transform: translateY(0); } to { transform: translateY(260px); } }
+@keyframes mf-flash {
+  0%, 88%, 100% { opacity: 0; }
+  89% { opacity: .85; } 90% { opacity: .1; } 91.5% { opacity: .7; } 93% { opacity: 0; }
+}
+@keyframes mf-glisse { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .meteo-fond *, .meteo-fond *::before, .meteo-fond *::after { animation: none !important; }
 }

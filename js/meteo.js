@@ -3,7 +3,9 @@
 // ----------------------------------------------------------
 // Source : Open-Meteo (https://open-meteo.com), service gratuit, sans clé
 // et sans inscription. Les données sont actualisées toutes les 10 minutes
-// (et dès que l'onglet redevient visible). La ville de l'agence est mise
+// (et dès que l'onglet redevient visible). Le fond de la carte est une
+// scène animée (soleil, nuages, pluie, orage, nuit, brouillard) qui suit le
+// temps actuel de la ville de l'agence. La ville de l'agence est mise
 // en avant ; les autres grandes villes du pays sont affichées en dessous.
 // Aucune donnée COLIGO n'est envoyée : seules des coordonnées de villes.
 // ==========================================================
@@ -62,6 +64,60 @@ function meteoLibelle(code) {
   return 'Nuageux';
 }
 
+// ---------- Fond animé : une scène par type de temps ----------
+// Chaque scène a une ambiance (ciel, soleil, nuages, pluie, éclairs, étoiles,
+// brume). Sur les fonds sombres le texte passe en blanc ; sur les fonds
+// clairs il reste foncé, pour rester lisible.
+function meteoScene(code, jour) {
+  if (code >= 95) return { nom: 'orage', texte: 'sombre' };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { nom: jour ? 'pluie' : 'pluie-nuit', texte: 'sombre' };
+  if (code >= 51 && code <= 57) return { nom: jour ? 'bruine' : 'pluie-nuit', texte: 'sombre' };
+  if (code === 45 || code === 48) return { nom: jour ? 'brouillard' : 'nuit-nuageux', texte: jour ? 'clair' : 'sombre' };
+  if (!jour) return { nom: code <= 1 ? 'nuit' : 'nuit-nuageux', texte: 'sombre' };
+  if (code === 0 || code === 1) return { nom: 'soleil', texte: 'sombre' };
+  if (code === 2) return { nom: 'nuageux', texte: 'sombre' };
+  return { nom: 'couvert', texte: 'sombre' };
+}
+
+function meteoAleatoire(min, max) { return (Math.random() * (max - min) + min).toFixed(2); }
+
+function meteoConstruireFond(scene) {
+  const fond = document.getElementById('meteo-fond');
+  const carte = document.getElementById('meteo-carte');
+  if (!fond || !carte) return;
+  if (carte.dataset.scene === scene.nom) return; // déjà en place, pas de saut d'animation
+  carte.dataset.scene = scene.nom;
+  carte.className = carte.className.replace(/\bmeteo-scene-\S+/g, '').replace(/\bmeteo-texte-\S+/g, '').trim()
+    + ` meteo-scene-${scene.nom} meteo-texte-${scene.texte}`;
+
+  const n = scene.nom;
+  let html = '<div class="mf-ciel"></div>';
+  if (n === 'soleil' || n === 'nuageux') html += '<div class="mf-soleil"><div class="mf-rayons"></div></div>';
+  if (n === 'nuit' || n === 'nuit-nuageux' || n === 'pluie-nuit') {
+    html += '<div class="mf-lune"></div>';
+    for (let i = 0; i < 28; i++) {
+      html += `<span class="mf-etoile" style="left:${meteoAleatoire(0, 100)}%;top:${meteoAleatoire(0, 70)}%;animation-delay:${meteoAleatoire(0, 4)}s;animation-duration:${meteoAleatoire(2, 5)}s"></span>`;
+    }
+  }
+  const nbNuages = { soleil: 1, nuageux: 3, couvert: 5, bruine: 4, pluie: 5, 'pluie-nuit': 4, orage: 5, brouillard: 2, nuit: 0, 'nuit-nuageux': 3 }[n] || 0;
+  for (let i = 0; i < nbNuages; i++) {
+    const taille = meteoAleatoire(0.7, 1.35);
+    html += `<div class="mf-nuage" style="top:${meteoAleatoire(-10, 45)}%;--echelle:${taille};animation-duration:${meteoAleatoire(38, 70)}s;animation-delay:-${meteoAleatoire(0, 60)}s"></div>`;
+  }
+  const nbGouttes = { bruine: 35, pluie: 70, 'pluie-nuit': 60, orage: 90 }[n] || 0;
+  if (nbGouttes) {
+    html += '<div class="mf-pluie">';
+    for (let i = 0; i < nbGouttes; i++) {
+      html += `<span style="left:${meteoAleatoire(-5, 105)}%;animation-delay:-${meteoAleatoire(0, 1.5)}s;animation-duration:${meteoAleatoire(0.55, 1.05)}s;opacity:${meteoAleatoire(0.35, 0.85)}"></span>`;
+    }
+    html += '</div>';
+  }
+  if (n === 'orage') html += '<div class="mf-eclair"></div><svg class="mf-foudre" viewBox="0 0 40 120" aria-hidden="true"><path d="M24 0 8 58h12L10 120 34 46H22L30 0z"/></svg>';
+  if (n === 'brouillard') html += '<div class="mf-brume mf-brume-1"></div><div class="mf-brume mf-brume-2"></div>';
+  html += '<div class="mf-voile"></div>';
+  fond.innerHTML = html;
+}
+
 function meteoEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -99,21 +155,22 @@ async function chargerMeteo() {
 
     const p = donnees[0], cur = p.current || {}, day = p.daily || {};
     const code = cur.weather_code, jour = cur.is_day === 1;
+    meteoConstruireFond(meteoScene(code, jour));
     zoneMain.innerHTML = `
-      <div class="flex items-center gap-4 sm:gap-5">
-        <div class="shrink-0">${meteoIcone(code, jour, 76)}</div>
+      <div class="flex items-center gap-3 sm:gap-4">
+        <div class="shrink-0 meteo-icone-principale">${meteoIcone(code, jour, 58)}</div>
         <div class="min-w-0">
-          <div class="text-sm font-semibold text-slate-500">${meteoEsc(principale.nom)} · votre agence</div>
-          <div class="flex items-baseline gap-3">
+          <div class="text-xs font-semibold meteo-sous">${meteoEsc(principale.nom)} · votre agence</div>
+          <div class="flex items-baseline gap-2.5 flex-wrap">
             <span class="meteo-temp">${meteoArrondi(cur.temperature_2m)}°C</span>
-            <span class="text-base font-semibold text-slate-700">${meteoLibelle(code)}</span>
+            <span class="text-sm font-semibold meteo-titre">${meteoLibelle(code)}</span>
           </div>
-          <div class="text-xs text-slate-500 mt-1">
+          <div class="text-[11px] meteo-sous mt-0.5">
             Ressenti ${meteoArrondi(cur.apparent_temperature)}°C ·
             Min ${meteoArrondi(day.temperature_2m_min && day.temperature_2m_min[0])}° / Max ${meteoArrondi(day.temperature_2m_max && day.temperature_2m_max[0])}° ·
             Humidité ${meteoArrondi(cur.relative_humidity_2m)} % ·
             Vent ${meteoArrondi(cur.wind_speed_10m)} km/h ·
-            Risque de pluie ${meteoArrondi(day.precipitation_probability_max && day.precipitation_probability_max[0])} %
+            Pluie ${meteoArrondi(day.precipitation_probability_max && day.precipitation_probability_max[0])} %
           </div>
         </div>
       </div>`;
@@ -122,19 +179,19 @@ async function chargerMeteo() {
       const c = d.current || {};
       return `
         <div class="meteo-ville" title="${meteoEsc(autres[i].nom)} : ${meteoLibelle(c.weather_code)}">
-          ${meteoIcone(c.weather_code, c.is_day === 1, 34)}
+          ${meteoIcone(c.weather_code, c.is_day === 1, 24)}
           <div class="min-w-0">
-            <div class="text-xs text-slate-500 truncate">${meteoEsc(autres[i].nom)}</div>
-            <div class="text-base font-bold text-slate-800 leading-tight">${meteoArrondi(c.temperature_2m)}°C</div>
+            <div class="meteo-ville-nom truncate">${meteoEsc(autres[i].nom)}</div>
+            <div class="meteo-ville-temp">${meteoArrondi(c.temperature_2m)}°C</div>
           </div>
         </div>`;
     }).join('');
 
     const h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    if (maj) maj.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 align-middle"></span>Mis à jour à ${h}`;
+    if (maj) maj.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 align-middle"></span>Mis à jour à ${h}`;
   } catch (e) {
     if (!zoneMain.innerHTML.trim()) {
-      zoneMain.innerHTML = '<p class="text-sm text-slate-500">Météo indisponible pour le moment (connexion internet requise).</p>';
+      zoneMain.innerHTML = '<p class="text-sm meteo-sous">Météo indisponible pour le moment (connexion internet requise).</p>';
     }
     if (maj) maj.textContent = 'Nouvelle tentative dans 10 min';
   }

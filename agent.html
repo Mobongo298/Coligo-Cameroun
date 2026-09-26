@@ -160,26 +160,29 @@
       <section id="view-dashboard" class="view active">
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
           <!-- Aperçu du jour : agence et date bien visibles -->
-          <div class="apercu-carte lg:col-span-2 rounded-2xl p-6 lg:p-7 flex flex-col justify-between">
+          <div class="apercu-carte lg:col-span-2 rounded-2xl p-5 flex flex-col justify-between">
             <div>
-              <div class="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">Aperçu du jour</div>
-              <div id="header-agence" class="apercu-agence mt-3">—</div>
-              <div id="apercu-agent" class="text-sm text-white/80 mt-3"></div>
+              <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/75">Aperçu du jour</div>
+              <div id="header-agence" class="apercu-agence mt-2">—</div>
+              <div id="apercu-agent" class="text-xs text-white/80 mt-1.5"></div>
             </div>
-            <div class="mt-5">
+            <div class="mt-4">
               <div id="today-date" class="apercu-date"></div>
-              <div id="apercu-heure" class="apercu-heure mt-1">—</div>
+              <div id="apercu-heure" class="apercu-heure">—</div>
             </div>
           </div>
 
-          <!-- Météo du Cameroun en temps réel (Open-Meteo) -->
-          <div class="meteo-carte lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <h2 class="font-semibold">Météo au Cameroun</h2>
-              <span id="meteo-maj" class="text-xs text-slate-500">Chargement…</span>
+          <!-- Météo du Cameroun en temps réel (Open-Meteo), fond animé selon le temps -->
+          <div id="meteo-carte" class="meteo-carte lg:col-span-3 rounded-2xl meteo-scene-nuageux meteo-texte-clair">
+            <div id="meteo-fond" class="meteo-fond" aria-hidden="true"></div>
+            <div class="meteo-contenu p-5">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h2 class="text-sm font-semibold meteo-titre">Météo au Cameroun</h2>
+                <span id="meteo-maj" class="text-[11px] meteo-sous">Chargement…</span>
+              </div>
+              <div id="meteo-principale" class="meteo-principale"></div>
+              <div id="meteo-villes" class="meteo-villes mt-3"></div>
             </div>
-            <div id="meteo-principale" class="meteo-principale"></div>
-            <div id="meteo-villes" class="grid grid-cols-3 gap-2.5 mt-4"></div>
           </div>
         </div>
 
@@ -402,11 +405,10 @@
                 </tr>
               </thead>
               <tbody id="table-listings">
-                <tr><td colspan="7" class="py-8 text-center text-slate-500">Chargement…</td></tr>
+                <tr><td colspan="5" class="py-8 text-center text-slate-500">Chargement…</td></tr>
               </tbody>
             </table>
           </div>
-        </div>
         </div>
       </section>
 
