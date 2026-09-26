@@ -435,7 +435,7 @@ function imprimerRecu(c) {
     return;
   }
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-    <title>Recu ${escR(c.numero_suivi)}</title><style>${RECU_CSS}</style></head>
+    <title>Reçu ${escR(c.numero_suivi)}</title><style>${RECU_CSS}</style></head>
     <body>${recuCompletHtml(c)}</body></html>`);
   w.document.close();
   w.focus();

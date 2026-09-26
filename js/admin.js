@@ -380,6 +380,41 @@ function renderDashboardSections() {
 // attente, enregistrés aujourd'hui…) restent consultables dans les vues
 // dédiées (Agents, Rapports, Rechercher un colis) plutôt que d'encombrer
 // le tableau de bord.
+// ---------- Montant total encaissé : masqué par défaut ----------
+// Le montant n'apparaît qu'après saisie du mot de passe administrateur
+// (vérifié par la base). Il se masque de nouveau d'un clic sur l'œil,
+// automatiquement au bout de 2 minutes, et à chaque rechargement de la page.
+let montantVisible = false;
+let minuteurMontant = null;
+
+function basculerMontant() {
+  if (montantVisible) { masquerMontant(); return; }
+  confirmerAvecMotDePasse({
+    titre: 'Afficher le montant total encaissé',
+    texte: 'Pour afficher ce montant, saisissez votre mot de passe administrateur.',
+    sansDanger: true,
+    libelleBouton: 'Afficher',
+    action: async (mdp) => {
+      const moi = getSession();
+      const { data, error } = await supabaseClient.rpc('agent_login', { p_username: moi.username, p_password: mdp });
+      if (error) return { ok: false, message: 'Vérification impossible pour le moment. Réessayez.' };
+      if (!data || !data.ok) return { ok: false, message: (data && data.locked && data.message) || 'Mot de passe incorrect.' };
+      return { ok: true, apres: () => {
+        montantVisible = true;
+        clearTimeout(minuteurMontant);
+        minuteurMontant = setTimeout(masquerMontant, 2 * 60 * 1000);
+        renderStatCards();
+      } };
+    }
+  });
+}
+
+function masquerMontant() {
+  montantVisible = false;
+  clearTimeout(minuteurMontant);
+  renderStatCards();
+}
+
 function renderStatCards() {
   const zone = document.getElementById('stats-row');
   const transit = colisCache.filter(c => normalizeStatut(c.statut) === 'En transit').length;
@@ -388,11 +423,21 @@ function renderStatCards() {
   const montant = montantActif + montantArchive;
   const retard = colisCache.filter(isLate).length;
 
+  const oeil = montantVisible
+    ? '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'
+    : '<path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
   zone.innerHTML = `
     <div class="hero-card hero-done">
-      <div class="hero-label">Montant total encaissé</div>
-      <div class="hero-num hero-num-money">${formatFCFA(montant)}</div>
-      ${montantArchive ? `<div class="hero-sub" style="color:var(--muted);">dont ${formatFCFA(montantArchive)} de colis archivés</div>` : ''}
+      <div class="hero-label hero-label-oeil">Montant total encaissé
+        <button type="button" class="btn-oeil" id="btn-oeil-montant"
+                title="${montantVisible ? 'Masquer le montant' : 'Afficher le montant (mot de passe demandé)'}"
+                aria-label="${montantVisible ? 'Masquer le montant' : 'Afficher le montant'}">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${oeil}</svg>
+        </button>
+      </div>
+      <div class="hero-num hero-num-money">${montantVisible ? formatFCFA(montant) : '••••••• FCFA'}</div>
+      ${montantVisible && montantArchive ? `<div class="hero-sub" style="color:var(--muted);">dont ${formatFCFA(montantArchive)} de colis archivés</div>` : ''}
+      ${montantVisible ? '' : '<div class="hero-sub">Montant masqué. Cliquez sur l\'œil pour l\'afficher.</div>'}
     </div>
     <div class="hero-card hero-transit">
       <div class="hero-label">En transit</div>
@@ -406,6 +451,7 @@ function renderStatCards() {
     </div>
   `;
 
+  document.getElementById('btn-oeil-montant').addEventListener('click', basculerMontant);
   const heroRetard = document.getElementById('hero-retard');
   if (heroRetard) {
     const ouvrir = () => openProblemListModal(`Colis en retard (aucune mise à jour depuis plus de ${LATE_DAYS} jours)`, colisCache.filter(isLate));
@@ -861,7 +907,7 @@ function applyHistoriqueFilters() {
     const cle = listing ? listing.numero_listing : '__sans_listing__';
     if (!groupes.has(cle)) {
       groupes.set(cle, {
-        titre: listing ? `Listing ${listing.numero_listing}` : 'Sans listing (colis pas encore imprimé dans un envoi groupé)',
+        titre: listing ? `Listing ${listing.numero_listing}` : 'Sans listing (colis pas encore imprimés, ou listing supprimé une fois tous ses colis retirés)',
         listingId: listing ? listing.id : null,
         ordre: listing ? new Date(listing.created_at).getTime() : -1,
         rows: []
@@ -977,6 +1023,7 @@ function deconnexionComplete() {
   localStorage.removeItem('coligo_agent_session');
 
   colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map(); archiveCache = [];
+  montantVisible = false; clearTimeout(minuteurMontant);
   if (typeof rap !== 'undefined') { if (rap.chart) rap.chart.destroy(); rap.chart = null; rap.lignes = null; rap.perime = true; rap.initialise = false; }
   Object.keys(viewLoaded).forEach(k => viewLoaded[k] = false);
 
@@ -999,7 +1046,7 @@ function openColisModal(c) {
   const content = document.getElementById('modal-content');
   content.innerHTML = `
     <h3>${esc(c.numero_suivi)}</h3>
-    <div class="modal-sub">Consultation uniquement — les corrections se font par l'agent tant que le colis est « Enregistré » (seule la suppression d'un dossier clos est proposée ici).</div>
+    <div class="modal-sub">Consultation uniquement — les corrections se font par l'agent tant que le colis est « Enregistré »).</div>
     <div class="modal-grid">
       <div><div class="k">Statut</div><div class="v">${statutBadge(c.statut)}</div></div>
       <div><div class="k">Agence</div><div class="v">${esc(c.agence) || '—'}</div></div>

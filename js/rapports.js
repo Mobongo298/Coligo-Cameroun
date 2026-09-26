@@ -7,7 +7,7 @@
 //    performante, croissance par rapport au mois précédent ;
 //  - graphique en barres Douala / Yaoundé par mois (CA ou nombre de colis) ;
 //  - tableau mensuel détaillé par agence ;
-//  - export PDF (jsPDF + AutoTable) et Excel (SheetJS).
+//  - export PDF (jsPDF + AutoTable).
 //
 // Les chiffres sont calculés sur TOUS les colis de la base (lecture paginée
 // de trois colonnes seulement), et non plus sur le cache des 2000 derniers,
@@ -180,9 +180,6 @@ function rapConstruireSquelette(zone) {
         <button type="button" class="admin-btn small ghost" id="rap-export-pdf">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/></svg>
           Exporter en PDF</button>
-        <button type="button" class="admin-btn small" id="rap-export-xlsx">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-          Exporter en Excel</button>
       </div>
     </div>
     <div id="rap-contenu"></div>
@@ -203,7 +200,6 @@ function rapConstruireSquelette(zone) {
     rapAfficher();
   }));
   document.getElementById('rap-export-pdf').addEventListener('click', rapExporterPDF);
-  document.getElementById('rap-export-xlsx').addEventListener('click', rapExporterExcel);
 }
 
 function rapSynchroniserFiltres() {
@@ -313,7 +309,6 @@ function rapAfficher() {
 
   const vide = c.totalNb === 0;
   document.getElementById('rap-export-pdf').disabled = vide;
-  document.getElementById('rap-export-xlsx').disabled = vide;
 
   if (rap.chart) { rap.chart.destroy(); rap.chart = null; }
 
@@ -502,54 +497,13 @@ function rapDessinerGraphique(c) {
   });
 }
 
-// ---------- Export Excel ----------
+// ---------- Nom du fichier exporté ----------
 
 function rapNomFichier(ext) {
   const c = rap.dernierCalcul;
   const du = c.du ? rapIso(c.du) : 'debut';
   const au = c.au ? rapIso(c.au) : rapIso(new Date());
   return `coligo-rapport_${du}_${au}.${ext}`;
-}
-
-function rapExporterExcel() {
-  const c = rap.dernierCalcul;
-  if (!c || !c.totalNb) return;
-  if (!window.XLSX) { alert("L'export Excel n'a pas pu être chargé. Vérifiez la connexion internet puis rechargez la page."); return; }
-
-  const wb = XLSX.utils.book_new();
-  const cr = c.croissance;
-
-  const synthese = [
-    ["COLIGO — Rapport d'activité"],
-    [rapLibellePeriode(c)],
-    ['Généré le ' + new Date().toLocaleString('fr-FR')],
-    [],
-    ['Indicateur', 'Valeur', 'Détail'],
-    ["Chiffre d'affaires total (FCFA)", c.totalMontant, ''],
-    ['Nombre total de colis', c.totalNb, ''],
-    ['Agence la plus performante', c.meilleure ? c.meilleure.label : '—', c.meilleure ? c.meilleure.montant : ''],
-    ['Croissance vs mois dernier (%)', cr.valeur === null ? '—' : Math.round(cr.valeur * 10) / 10,
-      `${rapLibelleMois(cr.kRef)} : ${cr.caRef} / ${rapLibelleMois(cr.kRef - 1)} : ${cr.caPrec}${cr.moisEnCours ? ` (du 1er au ${cr.jourLimite})` : ''}`],
-    [],
-    ['Agence', 'Colis', "Chiffre d'affaires (FCFA)", 'Part du CA (%)'],
-    ...c.listeAg.map(a => [a.label, a.nb, a.montant, c.totalMontant ? Math.round((a.montant / c.totalMontant) * 1000) / 10 : 0])
-  ];
-  const ws1 = XLSX.utils.aoa_to_sheet(synthese);
-  ws1['!cols'] = [{ wch: 34 }, { wch: 20 }, { wch: 46 }, { wch: 16 }];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Synthèse');
-
-  const entete = ['Mois', ...c.listeAg.flatMap(a => [`${a.label} - colis`, `${a.label} - CA (FCFA)`]), 'Total colis', 'Total CA (FCFA)', 'Archivé'];
-  const lignes = [...c.mois].reverse().map(m => [
-    rapLibelleMois(m.k),
-    ...c.listeAg.flatMap(a => { const v = m.parAg[a.cle] || { nb: 0, montant: 0 }; return [v.nb, v.montant]; }),
-    m.nb, m.montant, m.archive ? 'oui' : ''
-  ]);
-  const total = ['Total', ...c.listeAg.flatMap(a => [a.nb, a.montant]), c.totalNb, c.totalMontant, ''];
-  const ws2 = XLSX.utils.aoa_to_sheet([entete, ...lignes, total]);
-  ws2['!cols'] = entete.map((h, i) => ({ wch: i === 0 ? 18 : Math.max(12, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, ws2, 'Par mois');
-
-  XLSX.writeFile(wb, rapNomFichier('xlsx'));
 }
 
 // ---------- Export PDF ----------

@@ -308,7 +308,7 @@ document.getElementById('btn-listing-disponible').addEventListener('click', asyn
 
   if (!idsATraiter.length) {
     clearBtnLoading(btn);
-    zone.innerHTML = msgWarn('Les colis de ce listing sont déjà tous "Disponible" (ou dans un autre état).');
+    zone.innerHTML = msgWarn('Les colis de ce listing sont déjà tous « Disponible » (ou dans un autre état).');
     return;
   }
 
@@ -324,7 +324,7 @@ document.getElementById('btn-listing-disponible').addEventListener('click', asyn
   );
 
   clearBtnLoading(btn);
-  zone.innerHTML = msgSuccess(`${idsATraiter.length} colis du listing <strong>${esc(listing.numero_listing)}</strong> sont maintenant "Disponible".`);
+  zone.innerHTML = msgSuccess(`${idsATraiter.length} colis du listing <strong>${esc(listing.numero_listing)}</strong> sont maintenant « Disponible ».`);
   document.getElementById('listing-input').value = '';
   chargerListingsRecus();
 });
@@ -416,7 +416,7 @@ function afficherColis(c) {
       </div>
     ` : !disponible ? `
       <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-5 lg:p-6">
-        ${msgWarn(`Ce colis n'est pas encore disponible pour retrait (statut actuel : ${normalizeStatut(c.statut)}). Le retrait ne peut être enregistré qu'une fois le colis "Disponible".`)}
+        ${msgWarn(`Ce colis n'est pas encore disponible pour retrait (statut actuel : ${normalizeStatut(c.statut)}). Le retrait ne peut être enregistré qu'une fois le colis « Disponible ».`)}
       </div>
     ` : `
       <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-5 lg:p-6">
@@ -521,7 +521,7 @@ async function confirmerRetrait(c) {
     // et on prévient l'agent de réessayer.
     await supabaseClient.from('retraits').delete().eq('colis_id', c.id).eq('agent', agent.username);
     clearBtnLoading(btn);
-    zone.innerHTML = msgError('Le colis n\'a pas pu être marqué "Retiré". Réessayez.');
+    zone.innerHTML = msgError('Le colis n\'a pas pu être marqué « Retiré ». Réessayez.');
     return;
   }
 

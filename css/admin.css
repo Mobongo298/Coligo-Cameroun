@@ -294,6 +294,11 @@ a:hover { color: var(--brand-dark); text-decoration: underline; }
 .hero-done .hero-num { color: var(--ink); }
 .hero-done .hero-sub { color: var(--muted); }
 .hero-num-money { color: #16a34a !important; font-size: 2.1rem; }
+.hero-label-oeil { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.btn-oeil { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px;
+            border: 1px solid var(--line); background: var(--surface, #fff); color: var(--ink); cursor: pointer; }
+.btn-oeil:hover { background: #F1F5F9; }
+.btn-oeil:focus-visible { outline: 2px solid var(--admin-primary, #0C3F65); outline-offset: 2px; }
 
 /* En transit : l'indicateur principal du tableau de bord — plein bleu,
    nettement plus visible que les deux autres cartes. */

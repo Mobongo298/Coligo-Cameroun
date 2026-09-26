@@ -190,8 +190,8 @@ non réclamés, archivage statistique) a été **retiré** de l'application.
      fiche résumée (sans mot de passe) est gardée dans `agents_archives`. L'identifiant ne peut plus
      être réutilisé.
    - **Admin > Rapports** : tableau de bord avec 4 indicateurs, graphique Douala / Yaoundé par mois,
-     filtre de dates et exports **PDF** et **Excel**. Ces fonctions utilisent des bibliothèques en
-     ligne (Chart.js, jsPDF, SheetJS) : une connexion internet est nécessaire, comme pour Supabase.
+     filtre de dates et export **PDF**. Ces fonctions utilisent des bibliothèques en
+     ligne (Chart.js, jsPDF) : une connexion internet est nécessaire, comme pour Supabase.
 
 ## Étape 1octies — Messages de confirmation
 
@@ -220,6 +220,23 @@ Aucun script à exécuter.
      les informations du retrait (remis au destinataire ou au mandataire, date, agence, agent ayant fait
      l'opération). Aucun numéro de CNI ni de téléphone n'est montré.
 3. Redéployez le dossier sur Netlify.
+
+## Étape 1decies — Montant masqué, Rapports et suppression automatique des listings
+
+1. **Montant total encaissé (admin)** : il est masqué par défaut (••••••• FCFA). Cliquez sur
+   l'œil, puis saisissez votre mot de passe administrateur pour l'afficher. Il se masque de
+   nouveau tout seul après 2 minutes, au rechargement de la page et à la déconnexion.
+   Après 5 mots de passe erronés, le compte est temporairement bloqué (même règle que la
+   connexion). Aucun script SQL n'est nécessaire.
+2. **Rapports** : le bouton « Exporter en Excel » a été retiré ; l'export PDF est conservé.
+3. **Suppression automatique des listings** : faites d'abord une sauvegarde, puis exécutez
+   une fois `sql/listings_suppression_auto_migration.sql` (SQL Editor > New query > Run).
+   Dès que tous les colis d'un listing sont « Retiré », le listing est supprimé
+   définitivement. Le script supprime aussi tout de suite les listings déjà terminés.
+   Les colis, leur historique et leurs retraits sont conservés ; dans « Historique des
+   actions sur listing », leurs actions apparaissent dans le groupe « Sans listing ».
+   Un listing supprimé ne peut plus être réimprimé ni restauré.
+4. Les textes de la plateforme ont été relus (orthographe, accords, guillemets).
 
 ## Impression du reçu
 

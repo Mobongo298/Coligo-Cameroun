@@ -400,7 +400,7 @@ async function imprimerEtBasculerListing(colisListe, type, titre, btn) {
 
   if (errUpdate) {
     clearBtnLoading(btn);
-    alert("Le listing a été créé mais la mise à jour des colis a échoué : " + (errUpdate.message || 'erreur inconnue'));
+    alert("Le listing a été créé, mais la mise à jour des colis a échoué : " + (errUpdate.message || 'erreur inconnue'));
     return;
   }
 
