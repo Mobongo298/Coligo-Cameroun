@@ -56,10 +56,6 @@ function showDashboard(agent) {
   loadListingsPendants();
   demarrerTempsReel(agent);
   if (typeof initMessagerie === 'function') initMessagerie();
-  // Passage automatique du cycle de vie des données (la base décide s'il faut
-  // agir : au plus une fois toutes les 20 h). Silencieux, sans effet si la
-  // migration sql/cycle_de_vie_donnees_migration.sql n'est pas encore faite.
-  supabaseClient.rpc('lifecycle_auto').then(() => {}, () => {});
   // Coupe la session si un administrateur désactive ce compte.
   surveillerCompteActif();
 }
@@ -446,11 +442,11 @@ async function loadHistoriqueListings() {
     .limit(200);
 
   if (error) {
-    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-red-600">Impossible de charger l\'historique des listings.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-red-600">Impossible de charger l\'historique des listings.</td></tr>';
     return;
   }
   if (!data || !data.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">Aucun listing imprimé pour le moment.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Aucun listing imprimé pour le moment.</td></tr>';
     return;
   }
 
@@ -460,15 +456,12 @@ async function loadHistoriqueListings() {
   ));
 
   tbody.innerHTML = data.map((l, i) => `
-    <tr class="cursor-pointer hover:bg-slate-50" title="Voir tous les colis de ce listing" onclick="ouvrirDetailListing(${l.id})">
+    <tr class="cursor-pointer hover:bg-slate-50" title="Cliquer pour afficher les colis de ce listing" onclick="ouvrirDetailListing(${l.id})">
       <td class="py-2 pr-3 font-medium whitespace-nowrap text-coligo underline decoration-dotted underline-offset-2">${esc(l.numero_listing)}</td>
       <td class="py-2 pr-3">${l.type === 'bg' ? 'Bouteilles de gaz' : 'Colis groupés'}</td>
       <td class="py-2 pr-3">${counts[i].count || 0}</td>
       <td class="py-2 pr-3 whitespace-nowrap">${new Date(l.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
       <td class="py-2 pr-3">${esc(l.agent) || '—'}</td>
-      <td class="py-2"><button class="text-coligo hover:underline text-xs font-medium" onclick="event.stopPropagation(); ouvrirDetailListing(${l.id})">Voir les colis</button>
-        <span class="text-slate-300 mx-1">·</span>
-        <button class="text-coligo hover:underline text-xs font-medium" onclick="event.stopPropagation(); reimprimerListing(${l.id})">Réimprimer</button></td>
     </tr>`).join('');
 }
 

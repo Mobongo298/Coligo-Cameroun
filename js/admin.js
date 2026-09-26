@@ -142,7 +142,7 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 
 // ---------- Navigation (sidebar + mobile) ----------
 
-const viewLoaded = { dashboard: false, colis: false, agents: false, rapports: false, historique: false, messagerie: false, invitation: false, conservation: false, parametres: false };
+const viewLoaded = { dashboard: false, colis: false, agents: false, rapports: false, historique: false, messagerie: false, invitation: false, parametres: false };
 const viewDirty = { dashboard: true, agents: true, rapports: true };
 
 function switchView(name) {
@@ -158,7 +158,6 @@ function switchView(name) {
   if (name === 'historique' && !viewLoaded.historique) { initHistoriqueView(); viewLoaded.historique = true; }
   if (name === 'messagerie' && typeof msgChargerBoite === 'function') { msgChargerBoite(); viewLoaded.messagerie = true; }
   if (name === 'invitation' && !viewLoaded.invitation) { loadInviteCode(); viewLoaded.invitation = true; }
-  if (name === 'conservation' && typeof initCycleVie === 'function') { initCycleVie(); viewLoaded.conservation = true; }
   if (name === 'parametres' && !viewLoaded.parametres) { renderParametres(); viewLoaded.parametres = true; }
 }
 
@@ -181,16 +180,15 @@ let agentsCache = [];
 let listingsCache = new Map(); // id (numérique) -> ligne listings
 let trueTotalCount = 0;
 let ancienStatutMap = new Map(); // id historique -> ancien statut
-// Totaux des colis déjà supprimés par le cycle de vie (sql/cycle_de_vie_donnees_migration.sql).
+// Totaux archivés (table stats_archive, si elle existe encore) : ajoutés aux Rapports.
 // Sans ce cache, les rapports et le montant total baisseraient à chaque nettoyage.
 let archiveCache = [];
 
 async function initDashboard() {
-  // Passage automatique du cycle de vie des données (au plus une fois toutes
-  // les 20 h, décidé par la base). Silencieux : si la migration n'est pas
-  // encore faite, l'appel échoue sans conséquence.
-  try { await supabaseClient.rpc('lifecycle_auto'); } catch (e) { /* ignoré */ }
-  await Promise.all([loadSharedCache(), chargerDelaiSuppressionAgents()]);
+  // Comptes agents désactivés depuis plus de 30 jours : suppression définitive
+  // (fiche gardée dans agents_archives, activités conservées). Silencieux.
+  try { await supabaseClient.rpc('agents_purger_desactives'); } catch (e) { /* ignoré */ }
+  await loadSharedCache();
   subscribeRealtime();
   renderDashboardSections();
 }
@@ -341,11 +339,6 @@ function handleColisChange(payload) {
   if (active === 'view-colis') loadColisPage();
   if (active === 'view-rapports') { renderRapports(); viewDirty.rapports = false; }
   if (active === 'view-agents') { renderAgentsView(); viewDirty.agents = false; }
-  // Liste des retraits (Conservation des données) : un colis qui passe « Retiré »
-  // y apparaît aussitôt, un colis supprimé en disparaît.
-  const st = payload.new && normalizeStatut(payload.new.statut);
-  if (active === 'view-conservation' && typeof cdvRafraichirRetraits === 'function'
-      && (payload.eventType === 'DELETE' || st === 'Retiré')) cdvRafraichirRetraits();
 }
 
 function handleHistoriqueChange(payload) {
@@ -645,15 +638,8 @@ function renderAgentsView() {
   });
 }
 
-// Délai avant suppression définitive d'un compte désactivé (réglable dans
-// « Conservation des données », 30 jours par défaut).
-let delaiSuppressionAgents = 30;
-async function chargerDelaiSuppressionAgents() {
-  try {
-    const { data } = await supabaseClient.rpc('lifecycle_regles');
-    if (data && data.agents_desactives_suppression_jours) delaiSuppressionAgents = Number(data.agents_desactives_suppression_jours);
-  } catch (e) { /* valeur par défaut */ }
-}
+// Délai avant suppression définitive d'un compte désactivé : 30 jours.
+const delaiSuppressionAgents = 30;
 function joursAvantSuppression(desactiveLe) {
   if (!desactiveLe) return delaiSuppressionAgents;
   const fin = new Date(desactiveLe).getTime() + delaiSuppressionAgents * 86400000;
@@ -669,7 +655,7 @@ function rafraichirAgentLocal(id, champs) {
 function demanderDesactivation(agentId) {
   const a = agentsCache.find(x => String(x.id) === String(agentId));
   if (!a) return;
-  cdvConfirmer({
+  confirmerAvecMotDePasse({
     titre: `Désactiver le compte de ${a.nom_complet}`,
     texte: `<strong>${esc(a.username)}</strong> · agence de ${esc(a.agence)}<br>
       La connexion est bloquée immédiatement (une session ouverte est coupée en moins de 2 minutes).
@@ -695,7 +681,7 @@ function demanderDesactivation(agentId) {
 function demanderReactivation(agentId) {
   const a = agentsCache.find(x => String(x.id) === String(agentId));
   if (!a) return;
-  cdvConfirmer({
+  confirmerAvecMotDePasse({
     titre: `Réactiver le compte de ${a.nom_complet}`,
     texte: `<strong>${esc(a.username)}</strong> pourra de nouveau se connecter avec son mot de passe habituel. La suppression programmée est annulée.`,
     sansDanger: true,
@@ -711,6 +697,48 @@ function demanderReactivation(agentId) {
         actif: true, desactive_le: null, desactive_par: null, desactive_motif: null
       }) };
     }
+  });
+}
+
+// Fenêtre de confirmation : mot de passe administrateur (+ motif si demandé).
+function confirmerAvecMotDePasse({ titre, texte, avecMotif, libelleBouton, action, motifPlaceholder, sansDanger }) {
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <h3>${esc(titre)}</h3>
+    <div class="modal-sub">${texte}</div>
+    ${avecMotif ? `
+      <div class="admin-field">
+        <label>Motif (obligatoire)</label>
+        <input type="text" id="conf-motif" placeholder="${esc(motifPlaceholder || 'Ex. : démission')}">
+      </div>` : ''}
+    <div class="admin-field">
+      <label>Votre mot de passe administrateur</label>
+      <input type="password" id="conf-mdp" autocomplete="current-password">
+    </div>
+    <div id="conf-modal-msg"></div>
+    <div class="filter-bar">
+      <button class="admin-btn small ${sansDanger ? '' : 'danger'}" id="conf-modal-ok">${esc(libelleBouton)}</button>
+      <button class="admin-btn small ghost" id="conf-modal-annuler">Annuler</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+  setTimeout(() => { const f = document.getElementById(avecMotif ? 'conf-motif' : 'conf-mdp'); if (f) f.focus(); }, 50);
+
+  document.getElementById('conf-modal-annuler').addEventListener('click', closeModal);
+  document.getElementById('conf-modal-ok').addEventListener('click', async () => {
+    const btn = document.getElementById('conf-modal-ok');
+    const mdp = document.getElementById('conf-mdp').value;
+    const motif = avecMotif ? document.getElementById('conf-motif').value.trim() : null;
+    const zone = document.getElementById('conf-modal-msg');
+    zone.innerHTML = '';
+    if (avecMotif && motif.length < 5) { zone.innerHTML = '<div class="admin-error-box">Indiquez un motif (5 caractères minimum).</div>'; return; }
+    if (!mdp) { zone.innerHTML = '<div class="admin-error-box">Saisissez votre mot de passe.</div>'; return; }
+    setBtnLoading(btn, 'Traitement…');
+    const res = await action(mdp, motif);
+    clearBtnLoading(btn);
+    if (!res.ok) { zone.innerHTML = `<div class="admin-error-box">${esc(res.message)}</div>`; return; }
+    closeModal();
+    if (res.apres) res.apres();
   });
 }
 
@@ -846,10 +874,9 @@ function applyHistoriqueFilters() {
 
   zone.innerHTML = groupesTries.map(g => `
     <div class="admin-card">
-      <h3 style="gap:10px; flex-wrap:wrap;"><span style="display:flex; align-items:center; gap:10px;">${g.listingId
-          ? `<a href="#" class="listing-lien" onclick="event.preventDefault(); ouvrirDetailListing(${g.listingId})" title="Voir tous les colis de ce listing">${esc(g.titre)}</a>`
-          : esc(g.titre)}<span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${g.rows.length} action(s)</span></span>
-        ${g.listingId ? `<button class="admin-btn small ghost" onclick="ouvrirDetailListing(${g.listingId})">Voir les colis du listing</button>` : ''}</h3>
+      <h3>${g.listingId
+          ? `<a href="#" class="listing-lien" onclick="event.preventDefault(); ouvrirDetailListing(${g.listingId})" title="Cliquer pour afficher les colis de ce listing">${esc(g.titre)}</a>`
+          : esc(g.titre)}<span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${g.rows.length} action(s)</span></h3>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Date</th><th>Agent</th><th>Tracking</th><th>Ancien statut</th><th>Nouveau statut</th></tr></thead>
         <tbody>
@@ -989,15 +1016,10 @@ function openColisModal(c) {
       <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
     <div id="modal-corrections"></div>
-    ${normalizeStatut(c.statut) === 'Retiré' && typeof cdvDemanderSuppressionColis === 'function' ? `
-      <p class="muted-admin" style="font-size:0.8rem; margin:0 0 10px;">Dossier clos : ce colis sera supprimé automatiquement à la fin de sa durée de conservation. Vous pouvez aussi le supprimer dès maintenant.</p>
-      <button class="admin-btn admin-btn-block danger" id="btn-delete-colis" style="margin-bottom:10px;">Supprimer ce dossier clos</button>` : ''}
     <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
   `;
   document.getElementById('modal-backdrop').classList.remove('hidden');
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
-  const btnDel = document.getElementById('btn-delete-colis');
-  if (btnDel) btnDel.addEventListener('click', () => cdvDemanderSuppressionColis(c, false));
   afficherCorrectionsColis(c);
 }
 

@@ -3,15 +3,15 @@
 -- ==========================================================
 -- À exécuter dans Supabase > SQL Editor, APRÈS :
 --   securite_mots_de_passe_migration.sql, invite_code_par_role_migration.sql,
---   presence_agents_migration.sql et cycle_de_vie_donnees_migration.sql.
+--   presence_agents_migration.sql.
 -- Le script peut être relancé sans risque (idempotent).
 --
 -- Contenu :
 --   A. Désactivation / réactivation d'un compte agent (démission, licenciement)
 --      - connexion refusée dès la désactivation ;
---      - si le compte n'est pas réactivé sous 30 jours (réglable dans
---        « Conservation des données »), il est supprimé définitivement par le
---        cycle de vie. Une fiche est gardée dans agents_archives et TOUTES ses
+--      - si le compte n'est pas réactivé sous 30 jours, il est supprimé
+--        définitivement (agents_purger_desactives, appelée à l'ouverture de
+--        l'espace admin). Une fiche est gardée dans agents_archives et TOUTES ses
 --        activités restent (colis, historique, retraits, messages) ;
 --      - l'identifiant d'un compte supprimé ne peut pas être réutilisé.
 --   B. Correction d'un colis par l'agent après l'enregistrement (erreur de
@@ -66,8 +66,7 @@ exception when undefined_column then
 end $$;
 
 -- ----------------------------------------------------------
--- A4. Vérification administrateur (identique à cycle_de_vie_donnees_migration.sql,
---     redéfinie ici pour que ce script fonctionne seul)
+-- A4. Vérification administrateur (mot de passe vérifié dans la base)
 -- ----------------------------------------------------------
 create or replace function _verifier_admin(p_username text, p_password text)
 returns boolean
@@ -230,14 +229,6 @@ begin
     update agents set en_ligne = false, derniere_deconnexion = now() where id = v.id and en_ligne;
   exception when undefined_column then null; end;
 
-  begin
-    select agents_desactives_suppression_jours into v_jours from retention_settings where id = 1;
-  exception when undefined_table or undefined_column then v_jours := 30; end;
-
-  begin
-    insert into purge_journal (declencheur, execute_par, total, details)
-    values ('manuel', p_admin, 0, jsonb_build_object('compte_desactive', v.username, 'motif', left(trim(p_motif), 200)));
-  exception when undefined_table then null; end;
 
   return jsonb_build_object('ok', true,
     'suppression_prevue', now() + make_interval(days => coalesce(v_jours, 30)));
@@ -269,10 +260,6 @@ begin
   update agents set actif = true, desactive_le = null, desactive_par = null, desactive_motif = null
   where id = v.id;
 
-  begin
-    insert into purge_journal (declencheur, execute_par, total, details)
-    values ('manuel', p_admin, 0, jsonb_build_object('compte_reactive', v.username));
-  exception when undefined_table then null; end;
 
   return jsonb_build_object('ok', true);
 end;
@@ -293,6 +280,33 @@ $$;
 grant execute on function agent_desactiver(text, text, text, text) to anon, authenticated;
 grant execute on function agent_reactiver(text, text, text) to anon, authenticated;
 grant execute on function agent_compte_actif(text) to anon, authenticated;
+
+-- ----------------------------------------------------------
+-- A8. Suppression définitive des comptes désactivés depuis 30 jours
+--     Appelée silencieusement à l'ouverture de l'espace administrateur.
+--     Une fiche résumée est gardée dans agents_archives ; toutes les
+--     activités de l'agent (colis, historique, retraits, messages) restent.
+-- ----------------------------------------------------------
+create or replace function agents_purger_desactives()
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n int := 0;
+begin
+  insert into agents_archives (agent_id, username, nom_complet, agence, role, fiche, desactive_le, desactive_par, desactive_motif, supprime_le)
+  select a.id::text, a.username, a.nom_complet, a.agence, a.role, to_jsonb(a) - 'password', a.desactive_le, a.desactive_par, a.desactive_motif, now()
+  from agents a
+  where a.actif = false and a.desactive_le < now() - interval '30 days'
+  on conflict (username) do update set supprime_le = excluded.supprime_le;
+
+  delete from agents where actif = false and desactive_le < now() - interval '30 days';
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+grant execute on function agents_purger_desactives() to anon, authenticated;
 
 -- ----------------------------------------------------------
 -- B1. Journal des corrections de colis

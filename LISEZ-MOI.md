@@ -154,39 +154,31 @@ Le script `sql/schema.sql` active déjà la réplication temps réel pour les ta
 3. Peut être exécuté avant ou après `sql/reset_password_migration.sql`, l'ordre n'a
    pas d'importance.
 
-## Étape 1sexies — Cycle de vie des données (conservation et suppression)
+## Étape 1sexies — Annulation de « Conservation des données »
 
-1. Toujours dans **SQL Editor > New query**.
-2. Ouvrez `sql/cycle_de_vie_donnees_migration.sql`, copiez tout, collez, **Run**.
-   → À faire **après** toutes les autres migrations. Le fichier se termine par un aperçu de ce qui
-   serait nettoyé aujourd'hui : **il ne supprime rien à ce moment-là**.
-3. Dans `Admin.html`, un nouveau menu **Conservation des données** apparaît :
-   - le cycle d'un colis et les durées en vigueur ;
-   - ce qui peut être nettoyé aujourd'hui, catégorie par catégorie, avec un bouton
-     **Nettoyer maintenant** (mot de passe administrateur demandé) ;
-   - la liste des **colis non réclamés** (Disponible depuis longtemps), jamais supprimés
-     automatiquement : suppression manuelle possible après le délai choisi, avec un motif ;
-   - les **règles de conservation**, modifiables (mot de passe demandé, minimums imposés) ;
-   - le **journal** de chaque nettoyage, automatique ou manuel.
-4. Le nettoyage automatique se lance tout seul, au plus une fois toutes les 20 heures, dès qu'un
-   espace (agent, retraits ou admin) est ouvert. Pour un passage garanti chaque nuit même si personne
-   ne se connecte, activez `pg_cron` (Database > Extensions) et lancez les 2 lignes indiquées à la fin
-   du fichier SQL.
-5. `sql/nettoyage_retraits_1an.sql` est désormais **obsolète** : ne le relancez plus.
+Le module « Conservation des données » (cycle de vie : règles, journal, liste des retraits, colis
+non réclamés, archivage statistique) a été **retiré** de l'application.
 
-Durées par défaut : anonymisation des CNI et téléphones à 90 jours après le retrait, suppression des
-colis retirés à 365 jours (leurs chiffres restent dans les Rapports grâce à la table `stats_archive`),
-messages à 180 jours, codes et compteurs techniques à 24 heures, listings vides à 30 jours, journal à 2 ans.
-Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
+1. **Si vous aviez exécuté** `cycle_de_vie_donnees_migration.sql` ou `liste_retraits_migration.sql`
+   (ou si vous n'êtes pas sûr) : **SQL Editor > New query**, ouvrez
+   `sql/annulation_conservation_donnees.sql`, copiez tout, collez, **Run**. Le script peut être lancé
+   même si ces migrations n'ont jamais été faites. Il se termine par une vérification qui doit
+   renvoyer 0 ligne.
+2. Le fonctionnement d'origine revient : les colis retirés depuis plus d'un an sont supprimés
+   automatiquement à l'ouverture de l'espace Retraits (`sql/nettoyage_retraits_1an.sql`, déjà inclus
+   dans le script d'annulation).
+3. Ce qui a déjà été supprimé ou masqué par le cycle de vie ne peut pas être restauré par ce script
+   (seule une sauvegarde Supabase le permet). La table `stats_archive` n'est effacée que si elle est
+   vide, pour ne pas fausser les Rapports.
 
 ## Étape 1septies — Modification des colis, désactivation des agents et Rapports
 
 1. **SQL Editor > New query**.
-2. Si vous aviez déjà exécuté `sql/cycle_de_vie_donnees_migration.sql` d'une version précédente,
-   **relancez-le** (il ajoute la règle « Comptes agents désactivés », 30 jours). Il peut être relancé sans risque.
-3. Ouvrez `sql/agents_desactivation_modification_migration.sql`, copiez tout, collez, **Run**.
-   → À faire **après** la migration du cycle de vie.
-4. Ce que cela apporte :
+2. Ouvrez `sql/agents_desactivation_modification_migration.sql`, copiez tout, collez, **Run**.
+   → Si vous l'aviez déjà exécuté, **relancez-le** : il ne dépend plus du cycle de vie. Puis lancez
+   `sql/annulation_conservation_donnees.sql` (étape 1sexies), qui ajoute la suppression des comptes
+   désactivés depuis 30 jours.
+3. Ce que cela apporte :
    - **Espace agent** : en cliquant sur un colis, un bouton **Modifier** apparaît entre Fermer et
      Imprimer le reçu. Il est disponible tant que le colis est « Enregistré » et n'est pas encore sur
      un listing. Numéro de suivi, trajet et date ne changent pas ; chaque correction est gardée
@@ -201,27 +193,17 @@ Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
      filtre de dates et exports **PDF** et **Excel**. Ces fonctions utilisent des bibliothèques en
      ligne (Chart.js, jsPDF, SheetJS) : une connexion internet est nécessaire, comme pour Supabase.
 
-## Étape 1octies — Liste des retraits et messages de confirmation
+## Étape 1octies — Messages de confirmation
 
-1. **SQL Editor > New query** : ouvrez `sql/liste_retraits_migration.sql`, copiez tout, collez, **Run**.
-   → À faire **après** l'étape 1septies. Le script ne supprime rien ; il se termine par l'affichage
-   des 20 derniers retraits.
-2. Ce que cela apporte :
-   - **Admin > Conservation des données** : nouvelle carte **Liste des retraits**. Dès qu'un colis passe
-     au statut « Retiré », il y apparaît (en temps réel), avec le nombre de jours avant sa suppression
-     automatique, une recherche et un filtre par agence. Bouton **Supprimer** (mot de passe admin + motif).
-   - **Espace Retraits > Historique des colis retirés** : l'agent retrait peut supprimer lui-même un colis
-     retiré par son agence (son mot de passe + un motif). Chaque suppression est inscrite dans le journal.
-   - **Suppression automatique au bout d'un an** (règle « Supprimer les colis retirés après : 365 jours »).
-     Les chiffres du colis restent dans les Rapports.
-   - Tous les **messages de confirmation** s'affichent sur fond vert citron et disparaissent en fondu
-     après 2 secondes. Les messages d'erreur, eux, restent affichés.
-   - Le menu « Historique des actions » s'appelle désormais **Historique des actions sur listing**.
+Aucun script à exécuter.
+- Tous les **messages de confirmation** s'affichent sur fond vert citron et disparaissent en fondu
+  après 2 secondes. Les messages d'erreur, eux, restent affichés.
+- Le menu « Historique des actions » s'appelle désormais **Historique des actions sur listing**.
 
-## Étape 1nonies — Messagerie, codes de récupération, non réclamés, suivi client
+## Étape 1nonies — Messagerie, codes de récupération, listings, suivi client
 
-1. **SQL Editor > New query** : ouvrez `sql/messagerie_codes_non_reclames_migration.sql`, copiez tout,
-   collez, **Run**. → À faire **après** l'étape 1octies. Peut être relancé sans risque.
+1. **SQL Editor > New query** : ouvrez `sql/messagerie_codes_suivi_migration.sql`, copiez tout,
+   collez, **Run**. → À faire **après** l'étape 1sexies. Peut être relancé sans risque.
 2. Ce que cela apporte :
    - **Messagerie** : l'expéditeur comme le destinataire peuvent supprimer un message (icône corbeille)
      ou vider toute la conversation (bouton **Vider**), chacun dans sa propre messagerie, quand il le veut.
@@ -230,14 +212,10 @@ Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
    - **Codes « mot de passe oublié »** : un code est effacé de la base dès qu'il a servi. Les anciens
      codes sont effacés à chaque nouvelle demande, un code expiré est effacé, et 5 codes faux d'affilée
      annulent le code. Les codes déjà présents dans la base sont nettoyés par le script.
-   - **Colis non réclamés** : la liste est conservée (Admin > Conservation des données). Chaque colis y
-     reste **1 an** puis il est supprimé automatiquement ; l'admin peut aussi le supprimer avant (mot de
-     passe + motif). Un compte à rebours indique le temps restant. Ses chiffres restent dans les Rapports.
-     Si vous aviez gardé l'ancien délai de 90 jours, il passe à 365 jours.
    - **Listings** : un clic sur un listing (espace agent, espace Retraits, et « Historique des actions sur
      listing » côté admin) ouvre sa fiche avec **tous les colis enregistrés** dessus, les totaux, une
-     recherche et un bouton Imprimer.
-   - **Suivi client (page d'accueil)** : le reçu est en consultation seule, le client ne peut plus
+     recherche et le bouton **Réimprimer**.
+   - **Suivi client (page d'accueil)** : le reçu est en consultation seule, le client ne peut pas
      l'imprimer. Pour un colis déjà **retiré**, le reçu n'est plus affiché : seul un message apparaît avec
      les informations du retrait (remis au destinataire ou au mandataire, date, agence, agent ayant fait
      l'opération). Aucun numéro de CNI ni de téléphone n'est montré.

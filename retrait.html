@@ -211,10 +211,7 @@
                 Actualiser
               </button>
             </div>
-            <p class="text-xs text-slate-500 mb-4">Les 100 derniers retraits traités par votre agence. Dès qu'un colis est retiré, il rejoint cette liste :
-              vous pouvez le supprimer manuellement (mot de passe demandé), sinon il est supprimé automatiquement
-              <strong id="ret-duree-auto">au bout d'un an</strong>. Ses chiffres restent dans les rapports de l'administration.</p>
-            <div id="historique-info" class="mb-3"></div>
+            <p class="text-xs text-slate-500 mb-4">Les 100 derniers retraits traités par votre agence.</p>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -225,13 +222,11 @@
                     <th class="pb-2.5 pr-3 font-semibold">Retiré par</th>
                     <th class="pb-2.5 pr-3 font-semibold">CNI présenté</th>
                     <th class="pb-2.5 pr-3 font-semibold">Description</th>
-                    <th class="pb-2.5 pr-3 font-semibold">Montant</th>
-                    <th class="pb-2.5 pr-3 font-semibold">Suppression auto</th>
-                    <th class="pb-2.5 font-semibold">Action</th>
+                    <th class="pb-2.5 font-semibold">Montant</th>
                   </tr>
                 </thead>
                 <tbody id="historique-body" class="divide-y divide-slate-100">
-                  <tr><td colspan="9" class="py-8 text-center text-slate-400">Chargement…</td></tr>
+                  <tr><td colspan="7" class="py-8 text-center text-slate-400">Chargement…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -248,7 +243,7 @@
               </button>
             </div>
             <p class="text-xs text-slate-500 mb-4 max-w-2xl">
-              Tous les listings envoyés vers votre agence. Cliquez sur un listing pour afficher tous ses colis. « Réimprimer » produit une copie à l'identique
+              Tous les listings envoyés vers votre agence. Cliquez sur un listing pour afficher tous ses colis et le réimprimer. La réimpression produit une copie à l'identique
               et ne modifie aucun statut.
             </p>
             <div class="overflow-x-auto">
@@ -260,11 +255,10 @@
                     <th class="pb-2.5 pr-3 font-semibold">Colis</th>
                     <th class="pb-2.5 pr-3 font-semibold">Imprimé le</th>
                     <th class="pb-2.5 pr-3 font-semibold">Agence d'origine</th>
-                    <th class="pb-2.5 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="listings-recus-body" class="divide-y divide-slate-100">
-                  <tr><td colspan="6" class="py-8 text-center text-slate-400">Chargement…</td></tr>
+                  <tr><td colspan="5" class="py-8 text-center text-slate-400">Chargement…</td></tr>
                 </tbody>
               </table>
             </div>

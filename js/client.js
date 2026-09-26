@@ -9,7 +9,7 @@
 // que le client ait besoin de relancer une recherche.
 //
 // Reçu : consultation uniquement. Le client ne peut PAS l'imprimer
-// (pas de bouton, impression du navigateur bloquée, filigrane). Le reçu
+// (pas de bouton, impression du navigateur bloquée). Le reçu
 // officiel est celui remis au guichet.
 // Colis déjà retiré : le reçu n'est plus affiché ; seuls un message et les
 // informations du retrait (destinataire ou mandataire, date, agence, agent
@@ -134,7 +134,7 @@ async function afficherResultat(c) {
 
   renderStatutCard(c);
 
-  // Aperçu isolé dans une iframe (style 80 mm), avec filigrane et
+  // Aperçu isolé dans une iframe (style 80 mm), avec
   // impression neutralisée à l'intérieur de l'iframe elle-même.
   const preview = document.getElementById('recu-preview');
   const iframe = document.createElement('iframe');
@@ -145,13 +145,7 @@ async function afficherResultat(c) {
   doc.open();
   doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
     body { background:#f8fafc; padding:10px 0; -webkit-user-select:none; user-select:none; }
-    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); position:relative; overflow:hidden; }
-    .recu::after {
-      content:'CONSULTATION — NON VALABLE'; position:absolute; left:50%; top:45%;
-      transform:translate(-50%,-50%) rotate(-32deg); white-space:nowrap; pointer-events:none;
-      font:700 17px/1 Arial, sans-serif; letter-spacing:2px; color:rgba(12,63,101,0.13);
-      border:2px solid rgba(12,63,101,0.13); padding:6px 10px; border-radius:4px;
-    }
+    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); }
     @media (min-width: 700px) {
       body { display:flex; gap:14px; justify-content:center; align-items:flex-start; }
     }

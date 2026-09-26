@@ -30,7 +30,7 @@
 //     conserve tant qu'elle ne l'a pas supprimé de son côté.
 //   - Quand les DEUX personnes d'une discussion directe ont supprimé un
 //     message, il est effacé définitivement de la base (déclencheur ajouté par
-//     sql/messagerie_codes_non_reclames_migration.sql).
+//     sql/messagerie_codes_suivi_migration.sql).
 //
 // Bip sonore : quand un nouveau message arrive (temps réel) et que la
 // discussion n'est pas déjà ouverte à l'écran, un seul bip bref est joué.

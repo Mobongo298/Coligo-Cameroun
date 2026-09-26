@@ -4,8 +4,8 @@
 // Fiche d'un listing, partagée par agent.html, retrait.html et Admin.html.
 // Un clic sur un listing ouvre une fenêtre qui présente le listing
 // (numéro, type, agence, date, agent) et la liste de TOUS les colis
-// enregistrés dessus, avec leur statut actuel. Bouton « Imprimer » pour
-// réimprimer le listing (aucun statut n'est modifié).
+// enregistrés dessus, avec leur statut actuel. Bouton « Réimprimer »
+// (copie à l'identique, aucun statut n'est modifié).
 //
 // Autonome : injecte son propre style, fonctionne avec ou sans Tailwind.
 // ==========================================================
@@ -122,7 +122,7 @@ async function ouvrirDetailListing(listingId) {
           imprimé le ${ldDate(listing.created_at)}${listing.agent ? ' par ' + ldEsc(listing.agent) : ''}</div>
       </div>
       <div class="ld-actions">
-        <button class="ld-btn primaire" id="ld-imprimer">Imprimer</button>
+        <button class="ld-btn primaire" id="ld-imprimer">Réimprimer</button>
         <button class="ld-btn" id="ld-fermer">Fermer</button>
       </div>
     </div>
