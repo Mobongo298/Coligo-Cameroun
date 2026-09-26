@@ -125,7 +125,7 @@
         </button>
         <button onclick="show('suivi')" data-nav="suivi" class="rail-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-          Mes colis et suivi
+          Colis enregistrés depuis votre agence
         </button>
         <button onclick="afficherHistoriqueListings()" data-nav="listings" class="rail-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9.5 12.5h6M9.5 16h4"/></svg>
@@ -158,10 +158,30 @@
 
       <!-- ---------- VUE 1 : TABLEAU DE BORD ---------- -->
       <section id="view-dashboard" class="view active">
-        <header class="mb-6">
-          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Aperçu du jour</h1>
-          <p class="text-sm mt-1 on-photo-sub"><span id="header-agence">—</span> · <span id="today-date"></span></p>
-        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+          <!-- Aperçu du jour : agence et date bien visibles -->
+          <div class="apercu-carte lg:col-span-2 rounded-2xl p-6 lg:p-7 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">Aperçu du jour</div>
+              <div id="header-agence" class="apercu-agence mt-3">—</div>
+              <div id="apercu-agent" class="text-sm text-white/80 mt-3"></div>
+            </div>
+            <div class="mt-5">
+              <div id="today-date" class="apercu-date"></div>
+              <div id="apercu-heure" class="apercu-heure mt-1">—</div>
+            </div>
+          </div>
+
+          <!-- Météo du Cameroun en temps réel (Open-Meteo) -->
+          <div class="meteo-carte lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h2 class="font-semibold">Météo au Cameroun</h2>
+              <span id="meteo-maj" class="text-xs text-slate-500">Chargement…</span>
+            </div>
+            <div id="meteo-principale" class="meteo-principale"></div>
+            <div id="meteo-villes" class="grid grid-cols-3 gap-2.5 mt-4"></div>
+          </div>
+        </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div class="bg-white rounded-2xl border border-slate-200 p-5 border-t-4 border-coligo">
@@ -297,12 +317,17 @@
         </div>
       </section>
 
-      <!-- ---------- VUE 3 : MES COLIS & SUIVI ---------- -->
+      <!-- ---------- VUE 3 : COLIS ENREGISTRÉS DEPUIS VOTRE AGENCE ---------- -->
       <section id="view-suivi" class="view">
         <header class="mb-6">
-          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Mes colis et suivi</h1>
-          <p class="text-sm mt-1 on-photo-sub">Colis enregistrés depuis votre agence.</p>
+          <h1 class="text-2xl lg:text-3xl font-bold on-photo">Colis enregistrés depuis votre agence</h1>
+          <p class="text-sm mt-1 on-photo-sub">Classés par date d'enregistrement. Cliquez sur un colis pour voir son statut et son reçu.</p>
         </header>
+
+        <!-- Détail d'un colis (remplace la liste le temps de la consultation) -->
+        <div id="suivi-detail" class="hidden"></div>
+
+        <div id="suivi-liste">
 
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <div class="bg-white rounded-xl border border-slate-200 p-4">
@@ -326,6 +351,10 @@
             <select id="filter-statut" class="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white">
               <option value="">Tous les statuts</option>
             </select>
+            <select id="tri-date" class="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white" aria-label="Ordre de tri">
+              <option value="desc">Plus récents d'abord</option>
+              <option value="asc">Plus anciens d'abord</option>
+            </select>
             <button id="btn-refresh" class="px-4 py-2 rounded-lg border border-slate-300 text-sm hover:bg-slate-50 transition">
               Actualiser
             </button>
@@ -335,6 +364,7 @@
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                  <th class="pb-2 pr-3 font-medium">Enregistré le</th>
                   <th class="pb-2 pr-3 font-medium">N° Suivi</th>
                   <th class="pb-2 pr-3 font-medium">Expéditeur</th>
                   <th class="pb-2 pr-3 font-medium">Destination</th>
@@ -344,10 +374,11 @@
                 </tr>
               </thead>
               <tbody id="table-body" class="divide-y divide-slate-100">
-                <tr><td colspan="5" class="py-8 text-center text-slate-500">Chargement…</td></tr>
+                <tr><td colspan="7" class="py-8 text-center text-slate-500">Chargement…</td></tr>
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </section>
 
@@ -371,10 +402,11 @@
                 </tr>
               </thead>
               <tbody id="table-listings">
-                <tr><td colspan="5" class="py-8 text-center text-slate-500">Chargement…</td></tr>
+                <tr><td colspan="7" class="py-8 text-center text-slate-500">Chargement…</td></tr>
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </section>
 
@@ -403,6 +435,7 @@
 <script src="js/config.js"></script>
 <script src="js/reset-password.js"></script>
 <script src="js/agent.js"></script>
+<script src="js/meteo.js"></script>
 <script src="js/messagerie.js"></script>
 </body>
 </html>

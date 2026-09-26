@@ -238,6 +238,20 @@ Aucun script à exécuter.
    Un listing supprimé ne peut plus être réimprimé ni restauré.
 4. Les textes de la plateforme ont été relus (orthographe, accords, guillemets).
 
+## Étape 1undecies — Espace agent : colis enregistrés et météo
+
+1. Le menu « Mes colis et suivi » s'appelle désormais **« Colis enregistrés depuis votre
+   agence »**. La liste est classée par date d'enregistrement (plus récents d'abord, ou plus
+   anciens d'abord via le sélecteur). Un clic sur un colis affiche son statut (barre
+   d'avancement), ses informations, puis son reçu, avec les boutons « Imprimer le reçu »,
+   « Modifier » (si le colis est encore « Enregistré ») et « Fermer » pour revenir à la liste.
+2. **Tableau de bord** : la carte « Aperçu du jour » est agrandie (agence, date et heure en
+   grand). Juste à côté, une carte **Météo au Cameroun** affiche la ville de l'agence
+   (température en °C, ressenti, min/max, humidité, vent, risque de pluie) et 9 autres
+   grandes villes, avec une icône (soleil, nuages, pluie, orage…). Les données viennent
+   d'Open-Meteo (gratuit, sans clé) et se mettent à jour toutes les 10 minutes.
+   Aucun script SQL n'est nécessaire.
+
 ## Impression du reçu
 
 Le reçu est imprimé en double (exemplaire client + exemplaire agence) sur **une seule page (1/1)**,

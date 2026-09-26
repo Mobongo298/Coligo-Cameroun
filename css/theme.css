@@ -593,3 +593,49 @@ table.tf-2 tbody td {
 table.tf-2 tbody td.tf-nb, table.tf-2 tbody .tf-nb { white-space: normal; }
 table.tf-2 .cell-desc { max-width: none; }
 table.tf-2 tbody td .badge-statut { padding: 2px 7px; font-size: 0.64rem; }
+
+/* ==========================================================
+   Espace agent — carte « Aperçu du jour » et météo
+   ========================================================== */
+.apercu-carte {
+  background: linear-gradient(145deg, #0C3F65 0%, #1D6FA8 70%, #368AC8 100%);
+  color: #fff;
+  box-shadow: var(--lift-2, 0 10px 24px -12px rgba(12,63,101,.45));
+  min-height: 210px;
+}
+.apercu-agence {
+  font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.apercu-date {
+  font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.apercu-heure {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  font-variant-numeric: tabular-nums;
+}
+.meteo-carte { box-shadow: var(--lift-1, 0 2px 6px rgba(12,63,101,.08)); }
+.meteo-temp {
+  font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #0C3F65;
+  font-variant-numeric: tabular-nums;
+}
+.meteo-ville {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #E5EAF0;
+  border-radius: 12px;
+  background: #F8FAFC;
+}

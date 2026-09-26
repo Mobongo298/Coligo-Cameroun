@@ -47,6 +47,7 @@ function showDashboard(agent) {
   document.getElementById('agent-agence').textContent = 'Agence de ' + agent.agence;
   document.getElementById('agent-initials').textContent = initials(agent.nom_complet);
   document.getElementById('header-agence').textContent = 'Agence de ' + agent.agence;
+  document.getElementById('apercu-agent').textContent = 'Connecté : ' + agent.nom_complet;
 
   // Départ = l'agence de l'agent, arrivée = l'autre agence. Plus de saisie manuelle.
   document.getElementById('f-depart-affichage').textContent = agent.agence;
@@ -56,6 +57,7 @@ function showDashboard(agent) {
   loadListingsPendants();
   demarrerTempsReel(agent);
   if (typeof initMessagerie === 'function') initMessagerie();
+  if (typeof demarrerMeteo === 'function') demarrerMeteo();
   // Coupe la session si un administrateur désactive ce compte.
   surveillerCompteActif();
 }
@@ -89,6 +91,11 @@ function showLogin() {
 function show(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
+  // Revenir au menu « Colis enregistrés » affiche toujours la liste.
+  if (id === 'suivi') {
+    document.getElementById('suivi-detail').classList.add('hidden');
+    document.getElementById('suivi-liste').classList.remove('hidden');
+  }
 
   document.querySelectorAll('.rail-item[data-nav]').forEach(b => {
     b.classList.toggle('is-active', b.dataset.nav === id);
@@ -318,6 +325,7 @@ async function loadColisList() {
   chargerRegistre();
   renderTable();
   chargerCompteurRetires();
+  rafraichirDetailOuvert();
 }
 
 // Compteur séparé (les colis retirés ne sont plus dans colisCache).
@@ -549,8 +557,13 @@ function renderTable() {
     return matchQ && (!statut || normalizeStatut(c.statut) === statut);
   });
 
+  // Classement par date d'enregistrement (plus récents d'abord par défaut).
+  const sens = document.getElementById('tri-date').value === 'asc' ? 1 : -1;
+  list.sort((a, b) => sens * (new Date(a.created_at) - new Date(b.created_at)));
+
   document.getElementById('table-body').innerHTML = list.length ? list.map(c => `
     <tr class="hover:bg-slate-50 cursor-pointer" onclick="voirColis('${c.id}')">
+      <td class="py-3 pr-3 whitespace-nowrap text-slate-600">${formatDateTime(c.created_at)}</td>
       <td class="py-3 pr-3 font-medium whitespace-nowrap">${esc(c.numero_suivi)}</td>
       <td class="py-3 pr-3">${esc(c.expediteur_nom)}<div class="text-xs text-slate-500">${esc(c.expediteur_telephone) || '—'}</div></td>
       <td class="py-3 pr-3 whitespace-nowrap">${esc(c.ville_depart)} → ${esc(c.ville_arrivee)}</td>
@@ -558,11 +571,12 @@ function renderTable() {
       <td class="py-3 pr-3">${badge(c.statut)}</td>
       <td class="py-3 pr-3 whitespace-nowrap">${formatFCFA(c.montant_paye)}</td>
     </tr>`).join('')
-    : '<tr><td colspan="6" class="py-8 text-center text-slate-500">Aucun colis ne correspond à cette recherche.</td></tr>';
+    : '<tr><td colspan="7" class="py-8 text-center text-slate-500">Aucun colis ne correspond à cette recherche.</td></tr>';
 }
 
 document.getElementById('search-tel').addEventListener('input', renderTable);
 document.getElementById('filter-statut').addEventListener('change', renderTable);
+document.getElementById('tri-date').addEventListener('change', renderTable);
 
 document.getElementById('btn-refresh').addEventListener('click', async () => {
   const btn = document.getElementById('btn-refresh');
@@ -578,35 +592,129 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') closeModal();
 });
 
+// ---------- Détail d'un colis : statut, informations, puis son reçu ----------
+// Le détail remplace la liste dans la même page ; « Fermer » ramène à la
+// liste, à la même position de défilement.
+
+let suiviScrollY = 0;
+let detailOuvert = null; // { id, statut } du colis affiché
+
+// Temps réel : si le statut du colis affiché change, le détail est mis à jour.
+// S'il n'est plus dans la liste (retiré), on revient à la liste.
+function rafraichirDetailOuvert() {
+  if (!detailOuvert || document.getElementById('suivi-detail').classList.contains('hidden')) return;
+  const c = colisCache.find(x => String(x.id) === String(detailOuvert.id));
+  if (!c) { fermerDetailColis(); return; }
+  if (normalizeStatut(c.statut) !== detailOuvert.statut) voirColis(c.id);
+}
+
 function voirColis(id, bandeau) {
   const c = colisCache.find(x => String(x.id) === String(id));
   if (!c) return;
+  closeModal();
+  const vueSuivi = document.getElementById('view-suivi');
+  if (!vueSuivi.classList.contains('active')) show('suivi');
+  const liste = document.getElementById('suivi-liste');
+  if (!liste.classList.contains('hidden')) suiviScrollY = window.scrollY;
+
   const modifiable = colisModifiable(c);
-  document.getElementById('modal-content').innerHTML = `
-    <h3 class="text-lg font-bold text-coligo mb-1">${esc(c.numero_suivi)}</h3>
-    <p class="text-sm text-slate-500 mb-5">${badge(c.statut)}</p>
-    <div class="grid grid-cols-2 gap-4 text-sm mb-6">
-      <div><div class="text-xs text-slate-500">Expéditeur</div><div class="font-medium">${esc(c.expediteur_nom)}</div></div>
-      <div><div class="text-xs text-slate-500">Téléphone</div><div class="font-medium">${esc(c.expediteur_telephone) || '—'}</div></div>
-      <div><div class="text-xs text-slate-500">Destinataire</div><div class="font-medium">${esc(c.destinataire_nom)}</div></div>
-      <div><div class="text-xs text-slate-500">Téléphone</div><div class="font-medium">${esc(c.destinataire_telephone) || '—'}</div></div>
-      <div><div class="text-xs text-slate-500">Trajet</div><div class="font-medium">${esc(c.ville_depart)} → ${esc(c.ville_arrivee)}</div></div>
-      <div><div class="text-xs text-slate-500">Enregistré le</div><div class="font-medium">${formatDateTime(c.created_at)}</div></div>
-      <div><div class="text-xs text-slate-500">Montant payé</div><div class="font-medium">${formatFCFA(c.montant_paye)}</div></div>
-      <div><div class="text-xs text-slate-500">Valeur déclarée</div><div class="font-medium">${formatFCFA(c.valeur)}</div></div>
-      <div class="col-span-2"><div class="text-xs text-slate-500">Description</div><div class="font-medium">${esc(c.Description_du_colis) || '—'}</div></div>
+  const st = normalizeStatut(c.statut);
+  const col = statutColors(st);
+  const etapes = ['Enregistré', 'En transit', 'Disponible', 'Retiré'];
+  const idx = Math.max(0, etapes.indexOf(st));
+  const pct = ((idx + 1) / etapes.length) * 100;
+
+  const detail = document.getElementById('suivi-detail');
+  detail.innerHTML = `
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <button type="button" onclick="fermerDetailColis()" class="inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Fermer
+      </button>
     </div>
-    ${bandeau || ''}
-    ${modifiable ? '' : `<p class="text-xs text-slate-500 mb-3">${esc(raisonNonModifiable(c))}</p>`}
-    <div class="flex gap-3">
-      <button onclick="closeModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">Fermer</button>
-      ${modifiable ? `<button onclick="modifierColis('${c.id}')" class="flex-1 inline-flex items-center justify-center gap-2 bg-white border border-coligo text-coligo hover:bg-coligo-light font-semibold px-4 py-2.5 rounded-xl transition">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        Modifier</button>` : ''}
-      <button onclick="imprimerRecu(colisCache.find(x => String(x.id) === '${c.id}'))" class="flex-1 bg-coligo hover:bg-coligo-dark text-white font-semibold px-4 py-2.5 rounded-xl transition">Imprimer le reçu</button>
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="text-xs text-slate-500">Statut actuel du colis</div>
+          <div class="text-2xl font-bold mt-0.5" style="color:${col.text}">${esc(st)}</div>
+        </div>
+        <span class="px-4 py-2 rounded-full text-sm font-semibold" style="background:${col.bg}; color:${col.text}">${esc(c.numero_suivi)}</span>
+      </div>
+      <div class="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div class="h-full rounded-full" style="width:${pct}%; background:${col.solid}"></div>
+      </div>
+      <div class="flex justify-between text-[11px] text-slate-500 mt-1.5">
+        ${etapes.map((e, i) => `<span class="${i <= idx ? 'font-semibold text-slate-700' : ''}">${e}</span>`).join('')}
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mt-6">
+        <div><div class="text-xs text-slate-500">Expéditeur</div><div class="font-medium">${esc(c.expediteur_nom)}</div><div class="text-xs text-slate-500">${esc(c.expediteur_telephone) || '—'}</div></div>
+        <div><div class="text-xs text-slate-500">Destinataire</div><div class="font-medium">${esc(c.destinataire_nom)}</div><div class="text-xs text-slate-500">${esc(c.destinataire_telephone) || '—'}</div></div>
+        <div><div class="text-xs text-slate-500">Trajet</div><div class="font-medium">${esc(c.ville_depart)} → ${esc(c.ville_arrivee)}</div></div>
+        <div><div class="text-xs text-slate-500">Enregistré le</div><div class="font-medium">${formatDateTime(c.created_at)}</div></div>
+        <div><div class="text-xs text-slate-500">Montant payé</div><div class="font-medium">${formatFCFA(c.montant_paye)}</div></div>
+        <div><div class="text-xs text-slate-500">Valeur déclarée</div><div class="font-medium">${formatFCFA(c.valeur)}</div></div>
+        <div class="col-span-2"><div class="text-xs text-slate-500">Description</div><div class="font-medium">${esc(c.Description_du_colis) || '—'}</div></div>
+      </div>
+      ${bandeau ? `<div class="mt-5">${bandeau}</div>` : ''}
+      ${modifiable ? '' : `<p class="text-xs text-slate-500 mt-5">${esc(raisonNonModifiable(c))}</p>`}
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="font-semibold">Reçu du colis</h2>
+        <div class="flex flex-wrap gap-2">
+          ${modifiable ? `<button type="button" onclick="modifierColis('${c.id}')" class="inline-flex items-center gap-2 bg-white border border-coligo text-coligo hover:bg-coligo-light font-semibold px-4 py-2.5 rounded-xl transition">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Modifier</button>` : ''}
+          <button type="button" id="btn-imprimer-detail" class="inline-flex items-center gap-2 bg-coligo hover:bg-coligo-dark text-white font-semibold px-5 py-2.5 rounded-xl transition">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+            Imprimer le reçu</button>
+        </div>
+      </div>
+      <div id="detail-recu" class="overflow-x-auto"></div>
+      <div class="flex justify-end mt-4">
+        <button type="button" onclick="fermerDetailColis()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-xl transition">Fermer</button>
+      </div>
     </div>
   `;
-  document.getElementById('modal-backdrop').classList.remove('hidden');
+  document.getElementById('btn-imprimer-detail').addEventListener('click', () => imprimerRecu(c));
+
+  // Aperçu du reçu (2 exemplaires, format 80 mm) dans une iframe isolée.
+  const iframe = document.createElement('iframe');
+  iframe.title = 'Reçu du colis';
+  iframe.style.cssText = 'width:100%; border:0; display:block; height:600px;';
+  document.getElementById('detail-recu').appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
+    body { background:#f8fafc; padding:12px 0; margin:0; }
+    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
+    @media (min-width: 700px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
+    </style></head><body>${recuCompletHtml(c)}</body></html>`);
+  doc.close();
+  const ajuster = () => {
+    try {
+      const bas = Math.max(0, ...Array.from(doc.querySelectorAll('.recu')).map(r => r.getBoundingClientRect().bottom));
+      if (bas) iframe.style.height = Math.ceil(bas + 16) + 'px';
+    } catch (e) { /* silencieux */ }
+  };
+  setTimeout(ajuster, 60); setTimeout(ajuster, 400);
+  iframe.contentWindow.addEventListener('resize', ajuster);
+
+  detailOuvert = { id: c.id, statut: st };
+  liste.classList.add('hidden');
+  detail.classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+function fermerDetailColis() {
+  detailOuvert = null;
+  document.getElementById('suivi-detail').classList.add('hidden');
+  document.getElementById('suivi-detail').innerHTML = '';
+  document.getElementById('suivi-liste').classList.remove('hidden');
+  window.scrollTo(0, suiviScrollY);
 }
 
 // ---------- Correction d'un colis après l'enregistrement ----------
@@ -664,7 +772,7 @@ function modifierColis(id) {
   document.getElementById('m-montant_paye').addEventListener('input', (e) => {
     document.getElementById('m-valeur').textContent = formatFCFA((parseFloat(e.target.value) || 0) * 10);
   });
-  document.getElementById('m-annuler').addEventListener('click', () => voirColis(id));
+  document.getElementById('m-annuler').addEventListener('click', () => closeModal());
   document.getElementById('m-enregistrer').addEventListener('click', async () => {
     const btn = document.getElementById('m-enregistrer');
     const zone = document.getElementById('m-erreur');
