@@ -1,0 +1,23 @@
+{
+  "name": "COLIGO — Espace agent",
+  "short_name": "COLIGO Agent",
+  "description": "Espace agent, retraits et administration COLIGO.",
+  "start_url": "./agent.html",
+  "scope": "./",
+  "id": "coligo-agent",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F7FA",
+  "theme_color": "#0C3F65",
+  "lang": "fr",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Retraits", "url": "./retrait.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Administration", "url": "./Admin.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

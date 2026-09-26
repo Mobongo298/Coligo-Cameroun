@@ -292,3 +292,25 @@ par table). Dites-le-moi quand vous serez prêt pour cette étape, on la fera en
 - Rien ne s'affiche / erreur de connexion → vérifiez que `js/config.js` contient bien votre Project URL et votre clé, sans espace ni guillemet en trop.
 - « Aucun colis ne correspond » → vérifiez que le numéro a bien été créé côté agent, et qu'il est tapé sans espace.
 - Le site Netlify affiche une page blanche → vérifiez que vous avez glissé le dossier complet (avec `css` et `js` à l'intérieur), pas seulement `index.html`.
+
+## Ajout — PWA (application installable) — 26/09/2026
+
+Deux "applications" installables ont été ajoutées, sans rien réécrire du code existant :
+
+1. **Espace client** (`index.html`) → `manifest-client.json`
+2. **Espace agent / retraits / administration** (`agent.html`, `Admin.html`, `retrait.html`, `signup.html`) → `manifest-agent.json`
+
+### Comment ça s'installe
+- **Android (Chrome)** : ouvrir la page (index.html pour le client, agent.html pour l'agent), menu ⋮ → « Installer l'application » (ou une bannière apparaît automatiquement).
+- **iPhone (Safari)** : ouvrir la page → bouton Partager (carré avec flèche) → « Sur l'écran d'accueil ».
+
+Chaque app apparaît alors avec sa propre icône COLIGO, sans barre d'adresse, comme une vraie application. Ce n'est pas encore publié sur l'App Store / Google Play (voir discussion : étape suivante possible = encapsulation Capacitor).
+
+### Fichiers ajoutés
+- `manifest-client.json`, `manifest-agent.json` — identité de chaque app (nom, icônes, couleurs)
+- `sw.js` — service worker : mémorise l'apparence de l'app pour une ouverture plus rapide même en mauvaise connexion (ne met JAMAIS en cache les données Supabase : colis, comptes, messages restent toujours en direct)
+- `js/pwa-register.js` — active le service worker sur chaque page
+- `assets/icons/` — icônes générées à partir du logo COLIGO (192px, 512px, versions "maskable" pour Android, icône Apple)
+
+### Important à héberger
+Tout doit rester servi en **HTTPS** (Netlify le fait déjà par défaut) — une PWA ne s'installe pas en `http://` simple (sauf en local).

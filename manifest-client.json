@@ -1,0 +1,19 @@
+{
+  "name": "COLIGO — Suivi de colis",
+  "short_name": "COLIGO",
+  "description": "Suivez vos colis COLIGO en temps réel, sans création de compte.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "coligo-client",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F7FA",
+  "theme_color": "#1D6FA8",
+  "lang": "fr",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
