@@ -137,7 +137,7 @@ function showLogin() {
 }
 
 function msgError(t) { return `<div class="bg-red-50 text-red-700 border border-red-200 rounded-xl px-4 py-3 text-sm">${esc(t)}</div>`; }
-function msgSuccess(h) { return `<div class="bg-coligo-light text-coligo-dark border border-coligo/30 rounded-xl px-4 py-3 text-sm">${h}</div>`; }
+function msgSuccess(h) { return `<div class="msg-confirmation rounded-xl px-4 py-3 text-sm">${h}</div>`; }
 function msgWarn(t) { return `<div class="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-4 py-3 text-sm">${esc(t)}</div>`; }
 
 // ---------- Connexion ----------
@@ -540,10 +540,10 @@ async function confirmerRetrait(c) {
   // Confirmation claire — plus jamais le message "déjà retiré" juste
   // après un retrait qu'on vient tout juste d'effectuer.
   document.getElementById('resultat-zone').innerHTML = `
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-6 text-center">
-      <div class="text-4xl mb-2">✅</div>
+    <div class="msg-confirmation rounded-2xl p-6 text-center">
+      <svg viewBox="0 0 24 24" class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.3 3 3 6-6.3"/></svg>
       <h2 class="font-semibold text-lg mb-1">Retrait confirmé</h2>
-      <p class="text-sm text-slate-600">Le colis <strong>${esc(c.numero_suivi)}</strong> a été marqué comme retiré et vient d'être ajouté à « Historique des colis retirés ».</p>
+      <p class="text-sm">Le colis <strong>${esc(c.numero_suivi)}</strong> a été marqué comme retiré et vient d'être ajouté à « Historique des colis retirés ».</p>
     </div>
   `;
   document.getElementById('recherche-input').value = '';
@@ -554,33 +554,60 @@ async function confirmerRetrait(c) {
 
 // ---------- Historique des retraits ----------
 
+// Durée de conservation des colis retirés (règle de l'administrateur, 365 j par défaut).
+let dureeConservationRetires = 365;
+
+async function chargerDureeConservation() {
+  const { data, error } = await supabaseClient.rpc('lifecycle_regles');
+  if (error || !data) return;
+  const j = Number(data.colis_retires_conservation_jours) || 365;
+  dureeConservationRetires = j;
+  const el = document.getElementById('ret-duree-auto');
+  if (el) el.textContent = j % 365 === 0 ? `au bout de ${j === 365 ? 'un an' : (j / 365) + ' ans'}` : `après ${j} jours`;
+}
+
 async function chargerHistorique() {
   const agent = getSession();
   const tbody = document.getElementById('historique-body');
 
-  const { data, error } = await supabaseClient
-    .from('retraits')
-    .select('*, colis(*)')
-    .eq('agence', agent.agence)
-    .order('created_at', { ascending: false })
-    .limit(100);
+  const [{ data, error }] = await Promise.all([
+    supabaseClient
+      .from('retraits')
+      .select('*, colis(*)')
+      .eq('agence', agent.agence)
+      .order('created_at', { ascending: false })
+      .limit(100),
+    chargerDureeConservation()
+  ]);
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-600 text-sm">
+    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-red-600 text-sm">
       Impossible de charger l'historique. Si c'est la première utilisation, exécutez sql/retraits_migration.sql dans Supabase (SQL Editor), puis actualisez.
     </td></tr>`;
     return;
   }
 
-  if (!data || !data.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">Aucun retrait enregistré pour le moment.</td></tr>';
+  // Les fiches dont le colis a déjà été supprimé (ou n'est plus « Retiré ») ne sont pas listées.
+  const lignes = (data || []).filter(r => r.colis && ['Retiré', 'Livré'].includes(r.colis.statut));
+
+  if (!lignes.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center">
+      <div class="mx-auto w-12 h-12 rounded-2xl grid place-items-center bg-slate-100 text-slate-400 mb-3">
+        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/></svg>
+      </div>
+      <div class="font-semibold text-coligo-deep text-sm">Aucun colis retiré pour le moment</div>
+      <div class="text-xs text-slate-500 mt-1">Les colis apparaîtront ici dès leur passage au statut Retiré.</div>
+    </td></tr>`;
     return;
   }
 
-  tbody.innerHTML = data.map(r => {
+  tbody.innerHTML = lignes.map(r => {
     const c = r.colis || {};
     const retirePar = r.mandataire_nom ? `${esc(r.mandataire_nom)} (mandataire)` : `${esc(c.destinataire_nom) || '—'} (destinataire)`;
     const cni = r.mandataire_cni || r.destinataire_cni || '—';
+    const jours = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+    const restants = Math.max(dureeConservationRetires - jours, 0);
+    const pct = Math.min(100, Math.round(jours / Math.max(dureeConservationRetires, 1) * 100));
     return `
       <tr class="hover:bg-slate-50">
         <td class="py-3 pr-3 whitespace-nowrap">${fmtDateTime(r.created_at)}</td>
@@ -589,9 +616,73 @@ async function chargerHistorique() {
         <td class="py-3 pr-3">${retirePar}${r.mandataire_telephone ? `<div class="text-xs text-slate-500">${esc(r.mandataire_telephone)}</div>` : ''}</td>
         <td class="py-3 pr-3 whitespace-nowrap">${esc(cni)}</td>
         <td class="py-3 pr-3 text-slate-600 max-w-[200px]">${esc(c.Description_du_colis) || '—'}</td>
-        <td class="py-3 whitespace-nowrap">${fcfa(c.montant_paye)}</td>
+        <td class="py-3 pr-3 whitespace-nowrap">${fcfa(c.montant_paye)}</td>
+        <td class="py-3 pr-3 whitespace-nowrap text-xs">
+          ${restants > 0 ? `dans <strong>${restants} j</strong>` : '<strong>au prochain passage</strong>'}
+          <div class="h-1 w-20 rounded-full bg-slate-200 mt-1 overflow-hidden"><div class="h-full rounded-full ${restants <= 30 ? 'bg-amber-500' : 'bg-coligo'}" style="width:${pct}%"></div></div>
+        </td>
+        <td class="py-3 whitespace-nowrap">
+          <button class="btn-suppr-retrait text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 transition"
+                  data-id="${esc(String(c.id))}" data-num="${esc(c.numero_suivi)}">Supprimer</button>
+        </td>
       </tr>`;
   }).join('');
+
+  tbody.querySelectorAll('.btn-suppr-retrait').forEach(b =>
+    b.addEventListener('click', () => demanderSuppressionRetrait(b.dataset.id, b.dataset.num)));
+}
+
+// ---------- Suppression manuelle d'un colis retiré (agent retrait) ----------
+
+function demanderSuppressionRetrait(colisId, numero) {
+  let fond = document.getElementById('modal-suppr-retrait');
+  if (fond) fond.remove();
+  fond = document.createElement('div');
+  fond.id = 'modal-suppr-retrait';
+  fond.className = 'fixed inset-0 z-50 bg-slate-900/50 grid place-items-center p-4';
+  fond.innerHTML = `
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="sr-titre">
+      <h3 id="sr-titre" class="font-semibold text-lg text-coligo-deep mb-1">Supprimer le colis ${esc(numero)}</h3>
+      <p class="text-sm text-slate-600 mb-4">Ce dossier est clos (colis retiré). Le colis, son historique et sa fiche de retrait
+        seront <strong>définitivement supprimés</strong>. Ses chiffres restent comptés dans les rapports.</p>
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="sr-motif">Motif (obligatoire, conservé dans le journal)</label>
+      <input id="sr-motif" type="text" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-coligo/40"
+             placeholder="Ex. : dossier clos, archivé sur papier">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="sr-mdp">Votre mot de passe</label>
+      <input id="sr-mdp" type="password" autocomplete="current-password" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-coligo/40">
+      <div id="sr-msg" class="mb-3"></div>
+      <div class="flex gap-3">
+        <button id="sr-annuler" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50">Annuler</button>
+        <button id="sr-ok" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Supprimer définitivement</button>
+      </div>
+    </div>`;
+  document.body.appendChild(fond);
+  const fermer = () => fond.remove();
+  fond.addEventListener('click', e => { if (e.target === fond) fermer(); });
+  document.getElementById('sr-annuler').addEventListener('click', fermer);
+  setTimeout(() => document.getElementById('sr-motif').focus(), 30);
+
+  document.getElementById('sr-ok').addEventListener('click', async () => {
+    const btn = document.getElementById('sr-ok');
+    const motif = document.getElementById('sr-motif').value.trim();
+    const mdp = document.getElementById('sr-mdp').value;
+    const zone = document.getElementById('sr-msg');
+    zone.innerHTML = '';
+    if (motif.length < 5) { zone.innerHTML = msgError('Indiquez un motif (5 caractères minimum).'); return; }
+    if (!mdp) { zone.innerHTML = msgError('Saisissez votre mot de passe.'); return; }
+    setBtnLoading(btn, 'Suppression…');
+    const agent = getSession();
+    const { data, error } = await supabaseClient.rpc('retrait_supprimer_colis', {
+      p_username: agent.username, p_password: mdp, p_colis_id: String(colisId), p_motif: motif
+    });
+    clearBtnLoading(btn);
+    if (error) { zone.innerHTML = msgError("Suppression impossible. La migration sql/liste_retraits_migration.sql a-t-elle été exécutée ?"); return; }
+    if (!data || !data.ok) { zone.innerHTML = msgError((data && data.message) || 'Suppression refusée.'); return; }
+    fermer();
+    const info = document.getElementById('historique-info');
+    if (info) info.innerHTML = msgSuccess(`Colis <strong>${esc(numero)}</strong> supprimé définitivement.`);
+    chargerHistorique();
+  });
 }
 
 document.getElementById('btn-refresh-historique').addEventListener('click', async () => {

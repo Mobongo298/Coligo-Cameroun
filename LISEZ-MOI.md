@@ -201,6 +201,23 @@ Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
      filtre de dates et exports **PDF** et **Excel**. Ces fonctions utilisent des bibliothèques en
      ligne (Chart.js, jsPDF, SheetJS) : une connexion internet est nécessaire, comme pour Supabase.
 
+## Étape 1octies — Liste des retraits et messages de confirmation
+
+1. **SQL Editor > New query** : ouvrez `sql/liste_retraits_migration.sql`, copiez tout, collez, **Run**.
+   → À faire **après** l'étape 1septies. Le script ne supprime rien ; il se termine par l'affichage
+   des 20 derniers retraits.
+2. Ce que cela apporte :
+   - **Admin > Conservation des données** : nouvelle carte **Liste des retraits**. Dès qu'un colis passe
+     au statut « Retiré », il y apparaît (en temps réel), avec le nombre de jours avant sa suppression
+     automatique, une recherche et un filtre par agence. Bouton **Supprimer** (mot de passe admin + motif).
+   - **Espace Retraits > Historique des colis retirés** : l'agent retrait peut supprimer lui-même un colis
+     retiré par son agence (son mot de passe + un motif). Chaque suppression est inscrite dans le journal.
+   - **Suppression automatique au bout d'un an** (règle « Supprimer les colis retirés après : 365 jours »).
+     Les chiffres du colis restent dans les Rapports.
+   - Tous les **messages de confirmation** s'affichent sur fond vert citron et disparaissent en fondu
+     après 2 secondes. Les messages d'erreur, eux, restent affichés.
+   - Le menu « Historique des actions » s'appelle désormais **Historique des actions sur listing**.
+
 ## Important à savoir sur la sécurité
 
 Les mots de passe sont maintenant hachés et jamais comparés depuis le navigateur — la

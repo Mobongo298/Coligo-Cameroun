@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }[c]));
   }
   function errBox(msg) { return `<div class="admin-error-box">${escHtml(msg)}</div>`; }
-  function okBox(msg) { return `<div class="admin-info-box">${escHtml(msg)}</div>`; }
+  function okBox(msg) { return `<div class="admin-info-box msg-confirmation">${escHtml(msg)}</div>`; }
 
   function stopCooldown() {
     if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }

@@ -226,3 +226,63 @@ document.addEventListener('input', (e) => {
     if (clean !== el.value) el.value = clean;
   }
 });
+
+
+// ==========================================================
+// Messages de confirmation : fond vert citron, disparition en fondu après 2 s
+// ----------------------------------------------------------
+// Tout élément portant la classe « msg-confirmation » (ou l'une des anciennes
+// classes de succès : success-box, admin-success-box) est affiché sur fond vert
+// citron, reste visible 2 secondes, puis s'efface en fondu et est retiré de la
+// page. Fonctionne pour tous les messages, même ajoutés plus tard (innerHTML).
+// Les messages d'erreur ne sont jamais concernés : ils restent affichés.
+// ==========================================================
+(function () {
+  const SELECTEUR = '.msg-confirmation, .success-box, .admin-success-box';
+  const DUREE_VISIBLE = 2000;   // 2 secondes
+  const DUREE_FONDU = 600;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .msg-confirmation, .success-box, .admin-success-box {
+      background: #DDF7A6 !important;          /* vert citron */
+      border: 1px solid #A6DB3C !important;
+      color: #2E4A08 !important;
+      transition: opacity ${DUREE_FONDU}ms ease, transform ${DUREE_FONDU}ms ease;
+    }
+    .msg-confirmation a, .success-box a, .admin-success-box a { color: #2E4A08 !important; }
+    .msg-confirmation.is-fading, .success-box.is-fading, .admin-success-box.is-fading {
+      opacity: 0; transform: translateY(-4px);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .msg-confirmation, .success-box, .admin-success-box { transition: opacity 200ms linear; }
+      .msg-confirmation.is-fading, .success-box.is-fading, .admin-success-box.is-fading { transform: none; }
+    }`;
+  (document.head || document.documentElement).appendChild(style);
+
+  function programmer(el) {
+    if (el.dataset.fonduProgramme) return;
+    el.dataset.fonduProgramme = '1';
+    setTimeout(() => {
+      if (!el.isConnected) return;
+      el.classList.add('is-fading');
+      setTimeout(() => { if (el.isConnected) el.remove(); }, DUREE_FONDU + 50);
+    }, DUREE_VISIBLE);
+  }
+
+  function examiner(noeud) {
+    if (!(noeud instanceof Element)) return;
+    if (noeud.matches(SELECTEUR)) programmer(noeud);
+    noeud.querySelectorAll(SELECTEUR).forEach(programmer);
+  }
+
+  function demarrer() {
+    examiner(document.body);
+    new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(examiner));
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.body) demarrer();
+  else document.addEventListener('DOMContentLoaded', demarrer);
+})();

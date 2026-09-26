@@ -33,7 +33,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 | Catégorie | Durée par défaut | Minimum imposé | Mode |
 |---|---|---|---|
 | Anonymisation des retraits | 90 jours | 30 jours | Auto + manuel |
-| Colis retirés (dossiers clos) | 365 jours | 90 jours | Auto + manuel (+ suppression unitaire depuis la fiche) |
+| Colis retirés (dossiers clos) — « Liste des retraits » | 365 jours (1 an) | 90 jours | Auto + manuel : admin (Conservation des données ou fiche du colis) et agent retrait de l'agence (espace Retraits) |
 | Colis non réclamés : signalement | 30 jours | 7 jours | Information |
 | Colis non réclamés : suppression | 90 jours | 60 jours | **Manuel uniquement** |
 | Listings vides | 30 jours | 7 jours | Auto + manuel |
@@ -71,7 +71,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 
 1. Faire une **sauvegarde** : Supabase > Database > Backups (ou exporter les tables en CSV).
 2. Exécuter `sql/cycle_de_vie_donnees_migration.sql`. Il se termine par un **aperçu** qui ne supprime rien.
-   Puis `sql/agents_desactivation_modification_migration.sql`.
+   Puis `sql/agents_desactivation_modification_migration.sql`, puis `sql/liste_retraits_migration.sql`.
 3. Ouvrir Admin.html > Conservation des données, vérifier les chiffres « éligibles maintenant ».
 4. Si les durées vous conviennent, laisser le nettoyage automatique activé ; sinon, les ajuster d'abord.
 5. (Conseillé) Activer `pg_cron` pour un passage chaque nuit à 3 h (heure du Cameroun).

@@ -341,6 +341,11 @@ function handleColisChange(payload) {
   if (active === 'view-colis') loadColisPage();
   if (active === 'view-rapports') { renderRapports(); viewDirty.rapports = false; }
   if (active === 'view-agents') { renderAgentsView(); viewDirty.agents = false; }
+  // Liste des retraits (Conservation des données) : un colis qui passe « Retiré »
+  // y apparaît aussitôt, un colis supprimé en disparaît.
+  const st = payload.new && normalizeStatut(payload.new.statut);
+  if (active === 'view-conservation' && typeof cdvRafraichirRetraits === 'function'
+      && (payload.eventType === 'DELETE' || st === 'Retiré')) cdvRafraichirRetraits();
 }
 
 function handleHistoriqueChange(payload) {
@@ -787,7 +792,7 @@ function listeAgences() {
 
 // ---------- Vue : Rapports → voir js/rapports.js (tableau de bord premium) ----------
 
-// ---------- Vue : Historique des actions (recherche regroupée, sans réinitialiser) ----------
+// ---------- Vue : Historique des actions sur listing (recherche regroupée, sans réinitialiser) ----------
 
 function initHistoriqueView() {
   const sel = document.getElementById('hf-agent');

@@ -51,7 +51,9 @@ const CDV_LIBELLES_JOURNAL = {
   tentatives: 'compteur(s) de connexion', presence: 'présence(s) corrigée(s)', agents: 'compte(s) agent supprimé(s)', journal: 'entrée(s) de journal'
 };
 
-let cdvEtat = { regles: null, apercu: null, nonReclames: [], journal: [] };
+let cdvEtat = { regles: null, apercu: null, nonReclames: [], journal: [], retraits: null };
+// Filtres de la liste des retraits (conservés entre deux actualisations).
+let cdvRetFiltre = { texte: '', agence: '', limite: 50 };
 let cdvInitialise = false;
 
 function cdvEl(id) { return document.getElementById(id); }
@@ -63,11 +65,12 @@ async function initCycleVie() {
   if (!root) return;
   root.innerHTML = '<div class="table-state">Chargement…</div>';
 
-  const [regles, apercu, nonRec, journal] = await Promise.all([
+  const [regles, apercu, nonRec, journal, retraits] = await Promise.all([
     supabaseClient.rpc('lifecycle_regles'),
     supabaseClient.rpc('lifecycle_apercu'),
     supabaseClient.rpc('lifecycle_non_reclames'),
-    supabaseClient.rpc('lifecycle_journal', { p_limite: 50 })
+    supabaseClient.rpc('lifecycle_journal', { p_limite: 50 }),
+    supabaseClient.rpc('lifecycle_retraits', { p_limite: 2000 })
   ]);
 
   if (regles.error || !regles.data) {
@@ -86,6 +89,8 @@ async function initCycleVie() {
   cdvEtat.apercu = (apercu.data && apercu.data.details) || {};
   cdvEtat.nonReclames = nonRec.data || [];
   cdvEtat.journal = journal.data || [];
+  // null = fonction absente (sql/liste_retraits_migration.sql pas encore exécuté)
+  cdvEtat.retraits = retraits.error ? null : (retraits.data || []);
   cdvRendre();
   cdvInitialise = true;
 }
@@ -117,6 +122,10 @@ function cdvRendre() {
         manuellement à partir de ${r.non_reclames_suppression_jours} jours, avec un motif.
         Les rapports restent justes après suppression grâce aux statistiques archivées.
       </p>
+    </div>
+
+    <div class="admin-card" id="cdv-retraits-card">
+      ${cdvCarteRetraitsHtml()}
     </div>
 
     <div class="admin-card">
@@ -214,6 +223,133 @@ function cdvRendre() {
   cdvEl('cdv-btn-regles').addEventListener('click', cdvDemanderRegles);
   root.querySelectorAll('.cdv-suppr').forEach(b => b.addEventListener('click', () =>
     cdvDemanderSuppressionColis({ id: b.dataset.id, numero_suivi: b.dataset.num }, true)));
+  cdvBrancherRetraits();
+}
+
+// ---------- Liste des retraits ----------
+// Chaque colis passé au statut « Retiré » y figure automatiquement, jusqu'à sa
+// suppression : manuelle (agent retrait de l'agence ou administrateur) ou
+// automatique au bout de la durée de conservation (365 jours par défaut).
+
+function cdvRetraitsFiltres() {
+  const t = cdvRetFiltre.texte.trim().toLowerCase();
+  return (cdvEtat.retraits || []).filter(c =>
+    (!cdvRetFiltre.agence || c.ville_arrivee === cdvRetFiltre.agence) &&
+    (!t || [c.numero_suivi, c.destinataire_nom, c.beneficiaire, c.retire_par_agent]
+      .some(v => String(v || '').toLowerCase().includes(t))));
+}
+
+function cdvCarteRetraitsHtml() {
+  const r = cdvEtat.regles;
+  const duree = r.colis_retires_conservation_jours;
+  const intro = `
+    <h3>Liste des retraits <span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${cdvEtat.retraits ? cdvEtat.retraits.length + ' colis retiré(s)' : ''}</span></h3>
+    <p class="muted-admin" style="font-size:0.82rem; margin:-4px 0 10px;">
+      Dès qu'un colis passe au statut <strong>Retiré</strong>, il rejoint cette liste. Il peut être supprimé
+      manuellement par l'agent retrait de l'agence qui l'a remis (depuis son espace Retraits) ou par un
+      administrateur, sinon il est supprimé <strong>automatiquement ${duree >= 365 && duree % 365 === 0 ? `au bout de ${duree / 365 === 1 ? 'un an' : (duree / 365) + ' ans'}` : `après ${duree} jours`}</strong>.
+      Ses chiffres restent dans les Rapports.
+    </p>`;
+
+  if (cdvEtat.retraits === null) {
+    return intro + `<div class="admin-info-box">Pour afficher cette liste, exécutez
+      <strong>sql/liste_retraits_migration.sql</strong> dans Supabase (SQL Editor &gt; New query &gt; coller &gt; Run),
+      puis actualisez cette page.</div>`;
+  }
+
+  const liste = cdvRetraitsFiltres();
+  const visibles = liste.slice(0, cdvRetFiltre.limite);
+  const bientot = (cdvEtat.retraits || []).filter(c => c.jours_restants <= 30).length;
+  const agences = [...new Set((cdvEtat.retraits || []).map(c => c.ville_arrivee).filter(Boolean))].sort();
+
+  const lignes = visibles.map(c => {
+    const pct = Math.min(100, Math.round((c.jours / Math.max(duree, 1)) * 100));
+    const classe = c.jours_restants <= 30 ? 'cdv-jauge urgent' : 'cdv-jauge';
+    return `
+      <tr>
+        <td data-label="Tracking"><strong>${esc(c.numero_suivi)}</strong></td>
+        <td data-label="Destinataire">${esc(c.destinataire_nom) || '—'}</td>
+        <td data-label="Remis à">${esc(c.beneficiaire) || '—'}</td>
+        <td data-label="Agence">${esc(c.ville_arrivee) || '—'}</td>
+        <td data-label="Retiré le">${formatDateTime(c.retire_le)}${c.retire_par_agent ? `<div class="muted-admin" style="font-size:0.76rem;">par ${esc(c.retire_par_agent)}</div>` : ''}</td>
+        <td data-label="Suppression auto">
+          <div style="font-size:0.8rem; white-space:nowrap;">${c.jours_restants > 0 ? `dans <strong>${c.jours_restants} j</strong>` : '<strong>au prochain passage</strong>'}</div>
+          <div class="${classe}"><span style="width:${pct}%"></span></div>
+        </td>
+        <td data-label="Action"><button class="admin-btn small ghost-danger cdv-ret-suppr" data-id="${esc(c.id)}" data-num="${esc(c.numero_suivi)}">Supprimer</button></td>
+      </tr>`;
+  }).join('');
+
+  return intro + `
+    <div class="filter-bar" style="margin-bottom:10px;">
+      <div class="f-group"><label for="cdv-ret-texte">Rechercher</label>
+        <input type="text" id="cdv-ret-texte" placeholder="Tracking, nom, agent…" value="${esc(cdvRetFiltre.texte)}"></div>
+      <div class="f-group"><label for="cdv-ret-agence">Agence de retrait</label>
+        <select id="cdv-ret-agence"><option value="">Toutes</option>${agences.map(a =>
+          `<option value="${esc(a)}" ${a === cdvRetFiltre.agence ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>
+      ${bientot ? `<span class="badge-compte warn" style="align-self:flex-end; margin-bottom:6px;">${bientot} supprimé(s) automatiquement d'ici 30 jours</span>` : ''}
+    </div>
+    <div class="admin-table-wrap"><table class="admin-table">
+      <thead><tr><th>Tracking</th><th>Destinataire</th><th>Remis à</th><th>Agence</th><th>Retiré le</th><th>Suppression auto</th><th>Action</th></tr></thead>
+      <tbody>
+        ${lignes || `<tr><td colspan="7">${typeof etatVide === 'function'
+          ? etatVide('colis', cdvEtat.retraits.length ? 'Aucun retrait ne correspond' : 'Aucun colis retiré pour le moment',
+              cdvEtat.retraits.length ? 'Modifiez la recherche ou l\u2019agence choisie.' : 'Les colis apparaîtront ici dès leur passage au statut Retiré.')
+          : '<div class="table-state">Aucun colis retiré.</div>'}</td></tr>`}
+      </tbody>
+    </table></div>
+    ${liste.length > visibles.length ? `<div style="text-align:center; margin-top:10px;">
+      <button class="admin-btn small ghost" id="cdv-ret-plus">Afficher plus (${liste.length - visibles.length} restant(s))</button></div>` : ''}`;
+}
+
+function cdvBrancherRetraits() {
+  const carte = cdvEl('cdv-retraits-card');
+  if (!carte) return;
+  const texte = cdvEl('cdv-ret-texte');
+  if (texte) {
+    let minuteur = null;
+    texte.addEventListener('input', () => {
+      clearTimeout(minuteur);
+      minuteur = setTimeout(() => {
+        cdvRetFiltre.texte = texte.value; cdvRetFiltre.limite = 50;
+        cdvRedessinerRetraits(true);
+      }, 200);
+    });
+  }
+  const agence = cdvEl('cdv-ret-agence');
+  if (agence) agence.addEventListener('change', () => {
+    cdvRetFiltre.agence = agence.value; cdvRetFiltre.limite = 50; cdvRedessinerRetraits();
+  });
+  const plus = cdvEl('cdv-ret-plus');
+  if (plus) plus.addEventListener('click', () => { cdvRetFiltre.limite += 50; cdvRedessinerRetraits(); });
+  carte.querySelectorAll('.cdv-ret-suppr').forEach(b => b.addEventListener('click', () =>
+    cdvDemanderSuppressionColis({ id: b.dataset.id, numero_suivi: b.dataset.num }, false)));
+}
+
+// Rechargement léger de la seule liste des retraits (temps réel).
+let cdvRetMinuteur = null;
+function cdvRafraichirRetraits() {
+  if (!cdvInitialise || cdvEtat.retraits === null) return;
+  clearTimeout(cdvRetMinuteur);
+  cdvRetMinuteur = setTimeout(async () => {
+    const { data, error } = await supabaseClient.rpc('lifecycle_retraits', { p_limite: 2000 });
+    if (error) return;
+    cdvEtat.retraits = data || [];
+    const actif = document.activeElement && document.activeElement.id === 'cdv-ret-texte';
+    cdvRedessinerRetraits(actif);
+  }, 600);
+}
+
+function cdvRedessinerRetraits(garderFocus) {
+  const carte = cdvEl('cdv-retraits-card');
+  if (!carte) return;
+  const pos = garderFocus && cdvEl('cdv-ret-texte') ? cdvEl('cdv-ret-texte').selectionStart : null;
+  carte.innerHTML = cdvCarteRetraitsHtml();
+  cdvBrancherRetraits();
+  if (garderFocus) {
+    const t = cdvEl('cdv-ret-texte');
+    if (t) { t.focus(); if (pos !== null) t.setSelectionRange(pos, pos); }
+  }
 }
 
 function cdvLibelleDeclencheur(d) {
@@ -223,7 +359,7 @@ function cdvLibelleDeclencheur(d) {
 function cdvDetailJournal(j) {
   const d = j.details || {};
   if (j.declencheur === 'colis') {
-    return `Colis <strong>${esc(d.numero_suivi)}</strong> (${esc(d.statut)}${d.non_reclame ? ', non réclamé' : ''}) — motif : ${esc(d.motif)}`;
+    return `Colis <strong>${esc(d.numero_suivi)}</strong> (${esc(d.statut)}${d.non_reclame ? ', non réclamé' : ''})${d.par_role === 'agent retrait' ? ' — supprimé par l\u2019agent retrait' : ''} — motif : ${esc(d.motif)}`;
   }
   if (d.regles_modifiees) return 'Règles de conservation modifiées';
   if (d.compte_desactive) return `Compte <strong>${esc(d.compte_desactive)}</strong> désactivé — motif : ${esc(d.motif)}`;

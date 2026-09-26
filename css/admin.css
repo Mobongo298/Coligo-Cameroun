@@ -684,3 +684,9 @@ tr.row-desactive td:not(:last-child):not(:nth-last-child(2)) { color: var(--mute
 @media (prefers-reduced-motion: reduce) { .rap-skel > div, .rap-skel-bar { animation: none; } }
 table.admin-table td .etat-vide { white-space: normal; }
 .compte-sub { white-space: normal; max-width: 240px; }
+
+/* ---------- Liste des retraits (Conservation des données) ---------- */
+.badge-compte.warn { background: #FFF4DE; color: #9A5B00; }
+.cdv-jauge { height: 5px; border-radius: 99px; background: #E6EDF3; margin-top: 5px; overflow: hidden; min-width: 90px; }
+.cdv-jauge > span { display: block; height: 100%; border-radius: inherit; background: var(--brand, #1D6FA8); }
+.cdv-jauge.urgent > span { background: #E0A33B; }

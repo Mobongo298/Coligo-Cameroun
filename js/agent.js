@@ -173,7 +173,7 @@ function msgError(text) {
   return `<div class="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">${esc(text)}</div>`;
 }
 function msgSuccess(html) {
-  return `<div class="bg-coligo-light text-coligo-dark border border-coligo/30 rounded-lg px-4 py-3 text-sm">${html}</div>`;
+  return `<div class="msg-confirmation rounded-lg px-4 py-3 text-sm">${html}</div>`;
 }
 
 // ---------- Valeur déclarée (10 × le montant payé) ----------
