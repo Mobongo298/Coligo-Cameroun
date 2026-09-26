@@ -221,6 +221,12 @@ Aucun script à exécuter.
      l'opération). Aucun numéro de CNI ni de téléphone n'est montré.
 3. Redéployez le dossier sur Netlify.
 
+## Impression du reçu
+
+Le reçu est imprimé en double (exemplaire client + exemplaire agence) sur **une seule page (1/1)**,
+les deux exemplaires l'un sous l'autre, séparés par la ligne de coupe. Le format du reçu (80 mm)
+ne change pas. Aucun script SQL à exécuter.
+
 ## Important à savoir sur la sécurité
 
 Les mots de passe sont maintenant hachés et jamais comparés depuis le navigateur — la

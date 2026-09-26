@@ -302,8 +302,8 @@ function escR(s) {
 //   6. le guichet, la clause de dédommagement et un espace laissé vide
 //
 // Le double (2 exemplaires identiques, l'un pour le client, l'un pour
-// l'agence) est obtenu en imprimant deux fois ce même modèle ; chaque
-// exemplaire porte sa mention en bas.
+// l'agence) est obtenu en imprimant deux fois ce même modèle, à la suite,
+// sur une seule page (1/1) ; chaque exemplaire porte sa mention en bas.
 // Tout est en noir et blanc : c'est ce qu'une imprimante thermique rend
 // le mieux (les gris et les couleurs deviennent des points épars).
 // ----------------------------------------------------------
@@ -412,8 +412,9 @@ const RECU_CSS = `
 
   @media print {
     body { background: #fff; }
-    .recu { margin: 0 auto; page-break-after: always; }
-    .recu:last-child { page-break-after: auto; }
+    /* Les 2 exemplaires se suivent sur UNE seule page (impression 1/1),
+       séparés par la ligne de coupe : pas de saut de page entre eux. */
+    .recu { margin: 0 auto; page-break-after: auto; break-after: auto; page-break-inside: avoid; break-inside: avoid; }
   }
 `;
 
@@ -438,8 +439,28 @@ function imprimerRecu(c) {
     <body>${recuCompletHtml(c)}</body></html>`);
   w.document.close();
   w.focus();
-  // Laisse le temps au contenu de s'afficher avant d'ouvrir la boîte d'impression.
-  setTimeout(() => { w.print(); }, 400);
+  // Laisse le temps au contenu (logo compris) de s'afficher, puis fixe la
+  // hauteur de la page à celle des 2 exemplaires réunis : l'impression tient
+  // sur une seule page (1/1) au lieu de 1/2 et 2/2. Le format du reçu ne change pas.
+  setTimeout(() => {
+    ajusterPageUnique(w.document);
+    w.print();
+  }, 400);
+}
+
+// Calcule la hauteur totale des exemplaires (en mm) et impose une page
+// unique de 80 mm de large et de cette hauteur.
+function ajusterPageUnique(doc) {
+  try {
+    const recus = doc.querySelectorAll('.recu');
+    let px = 0;
+    recus.forEach(r => { px += r.getBoundingClientRect().height; });
+    if (!px) return;
+    const mm = Math.ceil(px * 25.4 / 96) + 2; // petite marge de sécurité
+    const st = doc.createElement('style');
+    st.textContent = `@page { size: 80mm ${mm}mm; margin: 0; }`;
+    doc.head.appendChild(st);
+  } catch (e) { /* on garde le format par défaut */ }
 }
 
 
