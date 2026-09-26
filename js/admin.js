@@ -834,6 +834,7 @@ function applyHistoriqueFilters() {
     if (!groupes.has(cle)) {
       groupes.set(cle, {
         titre: listing ? `Listing ${listing.numero_listing}` : 'Sans listing (colis pas encore imprimé dans un envoi groupé)',
+        listingId: listing ? listing.id : null,
         ordre: listing ? new Date(listing.created_at).getTime() : -1,
         rows: []
       });
@@ -845,7 +846,10 @@ function applyHistoriqueFilters() {
 
   zone.innerHTML = groupesTries.map(g => `
     <div class="admin-card">
-      <h3>${esc(g.titre)}<span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${g.rows.length} action(s)</span></h3>
+      <h3 style="gap:10px; flex-wrap:wrap;"><span style="display:flex; align-items:center; gap:10px;">${g.listingId
+          ? `<a href="#" class="listing-lien" onclick="event.preventDefault(); ouvrirDetailListing(${g.listingId})" title="Voir tous les colis de ce listing">${esc(g.titre)}</a>`
+          : esc(g.titre)}<span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${g.rows.length} action(s)</span></span>
+        ${g.listingId ? `<button class="admin-btn small ghost" onclick="ouvrirDetailListing(${g.listingId})">Voir les colis du listing</button>` : ''}</h3>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Date</th><th>Agent</th><th>Tracking</th><th>Ancien statut</th><th>Nouveau statut</th></tr></thead>
         <tbody>

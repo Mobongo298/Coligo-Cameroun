@@ -460,13 +460,15 @@ async function loadHistoriqueListings() {
   ));
 
   tbody.innerHTML = data.map((l, i) => `
-    <tr>
-      <td class="py-2 pr-3 font-medium whitespace-nowrap">${esc(l.numero_listing)}</td>
+    <tr class="cursor-pointer hover:bg-slate-50" title="Voir tous les colis de ce listing" onclick="ouvrirDetailListing(${l.id})">
+      <td class="py-2 pr-3 font-medium whitespace-nowrap text-coligo underline decoration-dotted underline-offset-2">${esc(l.numero_listing)}</td>
       <td class="py-2 pr-3">${l.type === 'bg' ? 'Bouteilles de gaz' : 'Colis groupés'}</td>
       <td class="py-2 pr-3">${counts[i].count || 0}</td>
       <td class="py-2 pr-3 whitespace-nowrap">${new Date(l.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
       <td class="py-2 pr-3">${esc(l.agent) || '—'}</td>
-      <td class="py-2"><button class="text-coligo hover:underline text-xs font-medium" onclick="reimprimerListing(${l.id})">Réimprimer</button></td>
+      <td class="py-2"><button class="text-coligo hover:underline text-xs font-medium" onclick="event.stopPropagation(); ouvrirDetailListing(${l.id})">Voir les colis</button>
+        <span class="text-slate-300 mx-1">·</span>
+        <button class="text-coligo hover:underline text-xs font-medium" onclick="event.stopPropagation(); reimprimerListing(${l.id})">Réimprimer</button></td>
     </tr>`).join('');
 }
 

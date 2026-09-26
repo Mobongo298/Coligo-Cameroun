@@ -22,11 +22,15 @@
 //     ('tous'), ou à un autre administrateur.
 //
 // Conservation des discussions :
-//   - Les messages ne sont JAMAIS effacés de la table `messages` par le site.
-//   - « Supprimer » (icône sur une bulle) retire CE message de MA vue
-//     seulement : on enregistre « ce message est masqué pour moi » dans la
-//     table `messages_masques` (voir sql/messagerie_conservation_migration.sql).
-//     L'autre personne le conserve dans sa propre discussion.
+//   - L'expéditeur ET le destinataire peuvent, chacun dans sa propre
+//     messagerie et au moment voulu, supprimer un message (icône corbeille
+//     sur la bulle) ou vider toute la discussion (bouton en haut à droite).
+//   - La suppression ne concerne que MA vue : on enregistre « ce message est
+//     masqué pour moi » dans la table `messages_masques`. L'autre personne le
+//     conserve tant qu'elle ne l'a pas supprimé de son côté.
+//   - Quand les DEUX personnes d'une discussion directe ont supprimé un
+//     message, il est effacé définitivement de la base (déclencheur ajouté par
+//     sql/messagerie_codes_non_reclames_migration.sql).
 //
 // Bip sonore : quand un nouveau message arrive (temps réel) et que la
 // discussion n'est pas déjà ouverte à l'écran, un seul bip bref est joué.
@@ -129,10 +133,11 @@ function msgConstruireInterface() {
           <div class="msg-thread-head">
             <button type="button" id="msg-retour" class="msg-retour" aria-label="Retour aux discussions">${MSG_ICONE_RETOUR}</button>
             <div class="msg-avatar" id="msg-thread-avatar"></div>
-            <div>
+            <div style="flex:1; min-width:0;">
               <div class="msg-thread-nom" id="msg-thread-nom"></div>
               <div class="msg-thread-sous" id="msg-thread-sous"></div>
             </div>
+            <button type="button" id="msg-vider" class="msg-vider-btn" title="Supprimer toute la discussion de ma messagerie" aria-label="Supprimer la discussion">${MSG_ICONE_SUPPR}<span>Vider</span></button>
           </div>
           <div class="msg-bulles" id="msg-bulles"></div>
           <div id="msg-lecture-seule" class="msg-lecture-seule" hidden></div>
@@ -148,6 +153,7 @@ function msgConstruireInterface() {
   msgEl('msg-nouvelle-btn').addEventListener('click', msgOuvrirNouvelle);
   msgEl('msg-retour').addEventListener('click', () => msgFermerConversation());
   msgEl('msg-envoyer').addEventListener('click', msgEnvoyer);
+  msgEl('msg-vider').addEventListener('click', msgViderConversation);
 
   const texte = msgEl('msg-texte');
   texte.addEventListener('keydown', (e) => {
@@ -435,7 +441,7 @@ function msgRendreBulles() {
     html += `
       <div class="msg-bulle-ligne ${estMoi ? 'is-sent' : 'is-received'}">
         <div class="msg-bulle ${estMoi ? 'is-sent' : 'is-received'}" data-id="${m.id}">
-          ${estMoi ? `<button type="button" class="msg-bulle-supprimer" data-id="${m.id}" title="Supprimer pour moi">${MSG_ICONE_SUPPR}</button>` : ''}
+          <button type="button" class="msg-bulle-supprimer" data-id="${m.id}" title="Supprimer de ma messagerie" aria-label="Supprimer ce message">${MSG_ICONE_SUPPR}</button>
           ${afficherAuteur ? `<div class="msg-bulle-auteur">${msgEsc(m.expediteur_nom)}</div>` : ''}
           <p class="msg-bulle-texte">${msgEsc(m.contenu)}</p>
           <div class="msg-bulle-pied">${msgHeure(m.created_at)} ${estMoi ? MSG_ICONE_ENVOYE : ''}</div>
@@ -452,7 +458,7 @@ function msgRendreBulles() {
 }
 
 async function msgSupprimerMessage(id) {
-  if (!confirm('Supprimer ce message pour vous ?\n\nIl sera retiré de votre discussion uniquement : l\'autre personne le conserve.')) return;
+  if (!confirm('Supprimer ce message de votre messagerie ?\n\nIl disparaît de votre discussion uniquement : l\'autre personne le garde tant qu\'elle ne l\'a pas supprimé elle aussi. Quand les deux l\'ont supprimé, il est effacé définitivement.')) return;
 
   const { error } = await supabaseClient.from('messages_masques').insert({
     message_id: Number(id),
@@ -465,6 +471,26 @@ async function msgSupprimerMessage(id) {
   }
   msgMasques.add(String(id));
   msgTous = msgTous.filter(m => String(m.id) !== String(id));
+  msgRendreBulles();
+  msgRendreListe();
+}
+
+// Vide TOUTE la discussion ouverte, de MA messagerie uniquement.
+async function msgViderConversation() {
+  if (!msgConvOuverte) return;
+  const g = msgGroupes().find(x => x.cle === msgConvOuverte);
+  const ids = g ? g.messages.map(m => m.id) : [];
+  if (!ids.length) return;
+  if (!confirm(`Supprimer les ${ids.length} message(s) de cette discussion de votre messagerie ?\n\nL'autre personne garde sa copie tant qu'elle ne l'a pas supprimée elle aussi.`)) return;
+
+  const lignes = ids.map(id => ({ message_id: Number(id), utilisateur_type: msgMoi.type, utilisateur_username: msgMoi.username }));
+  const { error } = await supabaseClient.from('messages_masques')
+    .upsert(lignes, { onConflict: 'message_id,utilisateur_type,utilisateur_username', ignoreDuplicates: true });
+  if (error) { console.warn('Suppression de la discussion impossible :', error.message); alert('Suppression impossible pour le moment. Réessayez.'); return; }
+
+  const set = new Set(ids.map(String));
+  set.forEach(id => msgMasques.add(id));
+  msgTous = msgTous.filter(m => !set.has(String(m.id)));
   msgRendreBulles();
   msgRendreListe();
 }

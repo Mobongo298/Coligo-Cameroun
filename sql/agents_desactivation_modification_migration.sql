@@ -80,7 +80,8 @@ begin
   select * into v from agents where username = p_username;
   return v.id is not null
      and v.role = 'administrateur'
-     and coalesce(v.actif, true)
+     -- compte désactivé refusé (lu via jsonb : fonctionne même avant l'ajout de la colonne « actif »)
+     and coalesce((to_jsonb(v)->>'actif')::boolean, true)
      and v.password is not null
      and crypt(p_password, v.password) = v.password;
 end;

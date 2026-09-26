@@ -218,6 +218,31 @@ Détails et conseils : `CYCLE-DE-VIE-DES-DONNEES.md`.
      après 2 secondes. Les messages d'erreur, eux, restent affichés.
    - Le menu « Historique des actions » s'appelle désormais **Historique des actions sur listing**.
 
+## Étape 1nonies — Messagerie, codes de récupération, non réclamés, suivi client
+
+1. **SQL Editor > New query** : ouvrez `sql/messagerie_codes_non_reclames_migration.sql`, copiez tout,
+   collez, **Run**. → À faire **après** l'étape 1octies. Peut être relancé sans risque.
+2. Ce que cela apporte :
+   - **Messagerie** : l'expéditeur comme le destinataire peuvent supprimer un message (icône corbeille)
+     ou vider toute la conversation (bouton **Vider**), chacun dans sa propre messagerie, quand il le veut.
+     L'autre personne garde sa copie. Quand les deux l'ont supprimé, le message est effacé
+     définitivement de la base.
+   - **Codes « mot de passe oublié »** : un code est effacé de la base dès qu'il a servi. Les anciens
+     codes sont effacés à chaque nouvelle demande, un code expiré est effacé, et 5 codes faux d'affilée
+     annulent le code. Les codes déjà présents dans la base sont nettoyés par le script.
+   - **Colis non réclamés** : la liste est conservée (Admin > Conservation des données). Chaque colis y
+     reste **1 an** puis il est supprimé automatiquement ; l'admin peut aussi le supprimer avant (mot de
+     passe + motif). Un compte à rebours indique le temps restant. Ses chiffres restent dans les Rapports.
+     Si vous aviez gardé l'ancien délai de 90 jours, il passe à 365 jours.
+   - **Listings** : un clic sur un listing (espace agent, espace Retraits, et « Historique des actions sur
+     listing » côté admin) ouvre sa fiche avec **tous les colis enregistrés** dessus, les totaux, une
+     recherche et un bouton Imprimer.
+   - **Suivi client (page d'accueil)** : le reçu est en consultation seule, le client ne peut plus
+     l'imprimer. Pour un colis déjà **retiré**, le reçu n'est plus affiché : seul un message apparaît avec
+     les informations du retrait (remis au destinataire ou au mandataire, date, agence, agent ayant fait
+     l'opération). Aucun numéro de CNI ni de téléphone n'est montré.
+3. Redéployez le dossier sur Netlify.
+
 ## Important à savoir sur la sécurité
 
 Les mots de passe sont maintenant hachés et jamais comparés depuis le navigateur — la

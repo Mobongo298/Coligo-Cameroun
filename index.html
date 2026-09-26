@@ -37,9 +37,20 @@
   }
   .client-page .brand-name { color: #ffffff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
   .client-page .brand-sub { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
+
+  /* Le client ne peut pas imprimer le reçu : l'impression du navigateur
+     (menu Fichier > Imprimer) ne produit qu'une page d'avertissement. */
+  .print-only { display: none; }
+  @media print {
+    body > *:not(.print-only) { display: none !important; }
+    .print-only { display: block !important; font: 14px/1.5 Arial, sans-serif; color: #000; padding: 40px; text-align: center; }
+    body { background: #fff !important; }
+    body::before, body::after { display: none !important; background: none !important; }
+  }
 </style>
 </head>
 <body class="app-bg client-page font-sans text-slate-800 min-h-screen">
+<div class="print-only">L'impression n'est pas disponible depuis le suivi en ligne COLIGO.<br>Le reçu officiel vous est remis au guichet de l'agence.</div>
 
 <header class="px-4 lg:px-8 py-4">
   <img src="assets/logo-coligo-blanc.png" alt="COLIGO" class="brand-img brand-img-lg" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
@@ -50,7 +61,7 @@
   <section class="text-center my-8 lg:my-12">
     <h1 class="text-3xl lg:text-5xl font-bold mb-4 on-photo tracking-tight">Où en est votre colis&nbsp;?</h1>
     <p class="max-w-lg mx-auto on-photo-sub">
-      Entrez votre numéro de suivi pour afficher votre reçu et connaître le statut de votre colis, en temps réel.
+      Entrez votre numéro de suivi pour connaître le statut de votre colis, en temps réel.
     </p>
   </section>
 

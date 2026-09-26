@@ -16,12 +16,14 @@ const CDV_CATEGORIES = [
     regle: r => `CNI et téléphones masqués ${r.retraits_anonymisation_jours} j après le retrait (le reste de la fiche est conservé)` },
   { cle: 'colis_retires', label: 'Colis retirés (dossiers clos)',
     regle: r => `Chiffres versés dans les statistiques archivées, puis colis + historique + fiche de retrait supprimés ${r.colis_retires_conservation_jours} j après le retrait` },
+  { cle: 'non_reclames', label: 'Colis non réclamés',
+    regle: r => `Colis « Disponible » jamais retirés : chiffres archivés puis colis supprimé ${r.non_reclames_suppression_jours} j après leur arrivée (1 an par défaut)` },
   { cle: 'listings', label: 'Listings vides',
     regle: r => `Listings sans aucun colis rattaché, supprimés après ${r.listings_vides_jours} j` },
   { cle: 'messages', label: 'Messages',
     regle: r => `Supprimés ${r.messages_conservation_jours} j après leur envoi` },
   { cle: 'codes', label: 'Codes « mot de passe oublié »',
-    regle: r => `Codes utilisés ou expirés, supprimés après ${r.codes_techniques_heures} h` },
+    regle: r => `Effacés de la base dès qu'ils ont servi ; les codes expirés sans usage sont effacés au passage suivant` },
   { cle: 'tentatives', label: 'Compteurs de connexion ratée',
     regle: r => `Remis à zéro ${r.codes_techniques_heures} h après la fin du verrouillage` },
   { cle: 'presence', label: 'Présence « en ligne » bloquée',
@@ -36,7 +38,7 @@ const CDV_CHAMPS_REGLES = [
   { cle: 'retraits_anonymisation_jours', label: 'Anonymiser les retraits après', unite: 'jours', min: 30 },
   { cle: 'colis_retires_conservation_jours', label: 'Supprimer les colis retirés après', unite: 'jours', min: 90 },
   { cle: 'non_reclames_alerte_jours', label: 'Signaler un colis non réclamé après', unite: 'jours', min: 7 },
-  { cle: 'non_reclames_suppression_jours', label: 'Autoriser la suppression manuelle d\u2019un non réclamé après', unite: 'jours', min: 60 },
+  { cle: 'non_reclames_suppression_jours', label: 'Supprimer un colis non réclamé après (auto ou manuel)', unite: 'jours', min: 60 },
   { cle: 'listings_vides_jours', label: 'Supprimer les listings vides après', unite: 'jours', min: 7 },
   { cle: 'messages_conservation_jours', label: 'Supprimer les messages après', unite: 'jours', min: 30 },
   { cle: 'codes_techniques_heures', label: 'Purger les codes et compteurs après', unite: 'heures', min: 1 },
@@ -47,7 +49,7 @@ const CDV_CHAMPS_REGLES = [
 
 const CDV_LIBELLES_JOURNAL = {
   anonymisation: 'retrait(s) anonymisé(s)', colis_retires: 'colis retiré(s) supprimé(s)',
-  listings: 'listing(s) vide(s)', messages: 'message(s)', codes: 'code(s)',
+  non_reclames: 'colis non réclamé(s) supprimé(s)', listings: 'listing(s) vide(s)', messages: 'message(s)', codes: 'code(s)',
   tentatives: 'compteur(s) de connexion', presence: 'présence(s) corrigée(s)', agents: 'compte(s) agent supprimé(s)', journal: 'entrée(s) de journal'
 };
 
@@ -117,9 +119,9 @@ function cdvRendre() {
         <div class="cdv-step"><div class="cdv-dot st-d"></div><div class="cdv-t">J+${r.colis_retires_conservation_jours}</div><div class="cdv-s">Chiffres archivés, colis supprimé</div></div>
       </div>
       <p class="muted-admin" style="font-size:0.82rem; margin:12px 0 0;">
-        Un colis « Disponible » jamais retiré n'est <strong>jamais supprimé automatiquement</strong> :
-        il est signalé après ${r.non_reclames_alerte_jours} jours, et un administrateur peut le supprimer
-        manuellement à partir de ${r.non_reclames_suppression_jours} jours, avec un motif.
+        Un colis « Disponible » jamais retiré entre dans la liste des <strong>colis non réclamés</strong>
+        après ${r.non_reclames_alerte_jours} jours. Il y est conservé ${r.non_reclames_suppression_jours} jours
+        (1 an par défaut), puis il est supprimé automatiquement, ou manuellement par un administrateur avec un motif.
         Les rapports restent justes après suppression grâce aux statistiques archivées.
       </p>
     </div>
@@ -158,8 +160,9 @@ function cdvRendre() {
     <div class="admin-card">
       <h3>Colis non réclamés <span class="muted-admin" style="font-weight:500; font-size:0.78rem;">${cdvEtat.nonReclames.length} colis « Disponible » depuis plus de ${r.non_reclames_alerte_jours} jours</span></h3>
       <p class="muted-admin" style="font-size:0.82rem; margin:-4px 0 10px;">
-        Conseil : relancez le destinataire par téléphone avant toute suppression. La suppression ne devient
-        possible qu'après ${r.non_reclames_suppression_jours} jours et reste tracée dans le journal.
+        La liste est conservée : chaque colis y reste ${r.non_reclames_suppression_jours} jours après son arrivée,
+        puis il est supprimé automatiquement (ou manuellement, avec un motif). Relancez le destinataire par téléphone
+        avant cette date. Toute suppression est tracée dans le journal et ses chiffres restent dans les Rapports.
       </p>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Tracking</th><th>Destinataire</th><th>Téléphone</th><th>Agence</th><th>Disponible depuis</th><th>Attente</th><th>Action</th></tr></thead>
@@ -174,7 +177,8 @@ function cdvRendre() {
               <td data-label="Attente"><strong>${c.jours} j</strong></td>
               <td data-label="Action">${c.supprimable
                 ? `<button class="admin-btn small danger cdv-suppr" data-id="${esc(c.id)}" data-num="${esc(c.numero_suivi)}">Supprimer</button>`
-                : `<span class="muted-admin">Possible dans ${Math.max(r.non_reclames_suppression_jours - c.jours, 0)} j</span>`}</td>
+                : `<span class="muted-admin">Suppression auto dans ${Math.max(r.non_reclames_suppression_jours - c.jours, 0)} j</span>
+                   <div class="cdv-jauge${(r.non_reclames_suppression_jours - c.jours) <= 30 ? ' urgent' : ''}"><span style="width:${Math.min(100, Math.round(c.jours / r.non_reclames_suppression_jours * 100))}%"></span></div>`}</td>
             </tr>`).join('') : '<tr><td colspan="7" class="table-state">Aucun colis non réclamé. Tout est en ordre.</td></tr>'}
         </tbody>
       </table></div>

@@ -45,7 +45,7 @@ create table if not exists retention_settings (
   retraits_anonymisation_jours int not null default 90,
   colis_retires_conservation_jours int not null default 365,
   non_reclames_alerte_jours int not null default 30,
-  non_reclames_suppression_jours int not null default 90,
+  non_reclames_suppression_jours int not null default 365,
   listings_vides_jours int not null default 30,
   messages_conservation_jours int not null default 180,
   codes_techniques_heures int not null default 24,
@@ -146,6 +146,8 @@ begin
   select * into v from agents where username = p_username;
   return v.id is not null
      and v.role = 'administrateur'
+     -- compte désactivé refusé (lu via jsonb : fonctionne même avant l'ajout de la colonne « actif »)
+     and coalesce((to_jsonb(v)->>'actif')::boolean, true)
      and v.password is not null
      and crypt(p_password, v.password) = v.password;
 end;
@@ -227,17 +229,17 @@ declare
 begin
   select * into r from retention_settings where id = 1;
 
-  -- a) Codes « mot de passe oublié » expirés ou utilisés
+  -- a) Codes « mot de passe oublié » utilisés ou expirés : supprimés sans délai
+  --    (un code utilisé est déjà effacé au moment même de son usage ; ceci
+  --    rattrape les codes restés sans usage et arrivés à expiration).
   if toutes or 'codes' = any (p_categories) then
     begin
       if p_simuler then
         select count(*) into n from password_reset_codes
-        where (used or expires_at < now())
-          and created_at < now() - make_interval(hours => r.codes_techniques_heures);
+        where used or expires_at < now();
       else
         delete from password_reset_codes
-        where (used or expires_at < now())
-          and created_at < now() - make_interval(hours => r.codes_techniques_heures);
+        where used or expires_at < now();
         get diagnostics n = row_count;
       end if;
     exception when undefined_table then n := 0; end;
@@ -397,7 +399,23 @@ begin
     d := d || jsonb_build_object('journal', n); total := total + n;
   end if;
 
-  -- Information seulement (jamais supprimé automatiquement) : colis non réclamés
+  -- j) Colis non réclamés (« Disponible » jamais retirés) depuis plus de N jours
+  --    (défaut 365 = 1 an) : chiffres archivés comme « non réclamés », puis
+  --    colis + historique supprimés. Même délai que la suppression manuelle.
+  if toutes or 'non_reclames' = any (p_categories) then
+    select coalesce(array_agg(c.id::text), '{}') into ids
+    from colis c
+    where c.statut in ('Disponible', 'Disponible pour retrait')
+      and coalesce(c.updated_at, c.created_at) < now() - make_interval(days => r.non_reclames_suppression_jours);
+    n := coalesce(array_length(ids, 1), 0);
+    if not p_simuler and n > 0 then
+      perform _archiver_colis(ids, true);
+      n := _supprimer_colis(ids);
+    end if;
+    d := d || jsonb_build_object('non_reclames', n); total := total + n;
+  end if;
+
+  -- Information : colis non réclamés signalés / arrivés au délai de suppression
   select count(*) into n from colis
   where statut in ('Disponible', 'Disponible pour retrait')
     and coalesce(updated_at, created_at) < now() - make_interval(days => r.non_reclames_alerte_jours);
@@ -540,7 +558,7 @@ begin
   end if;
 
   v_non_rec_alerte := greatest(coalesce((p_regles->>'non_reclames_alerte_jours')::int, 30), 7);
-  v_non_rec_suppr  := greatest(coalesce((p_regles->>'non_reclames_suppression_jours')::int, 90), 60, v_non_rec_alerte);
+  v_non_rec_suppr  := greatest(coalesce((p_regles->>'non_reclames_suppression_jours')::int, 365), 60, v_non_rec_alerte);
 
   update retention_settings set
     purge_auto_active                = coalesce((p_regles->>'purge_auto_active')::boolean, purge_auto_active),
@@ -600,7 +618,7 @@ as $$
     and c.statut in ('Disponible', 'Disponible pour retrait')
     and coalesce(c.updated_at, c.created_at) < now() - make_interval(days => r.non_reclames_alerte_jours)
   order by disponible_depuis asc
-  limit 500;
+  limit 2000;
 $$;
 
 -- 7.8 Suppression manuelle d'UN colis (mot de passe admin + motif exigés).

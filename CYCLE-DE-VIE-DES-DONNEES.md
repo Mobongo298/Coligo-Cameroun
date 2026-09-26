@@ -24,8 +24,9 @@ Enregistré → En transit → Disponible → Retiré                 (vie activ
                                │          └─ J+365 : chiffres versés dans stats_archive,
                                │                     puis colis + historique + retrait supprimés
                                │
-                               ├─ J+30 : signalé « non réclamé » à l'admin
-                               └─ J+90 : suppression MANUELLE possible (motif obligatoire)
+                               ├─ J+30  : entre dans la liste « colis non réclamés »
+                               └─ J+365 : chiffres archivés, puis suppression AUTOMATIQUE
+                                          (ou manuelle avant, par l'admin, avec motif)
 ```
 
 Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie laisse une trace dans le journal.
@@ -35,10 +36,11 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 | Anonymisation des retraits | 90 jours | 30 jours | Auto + manuel |
 | Colis retirés (dossiers clos) — « Liste des retraits » | 365 jours (1 an) | 90 jours | Auto + manuel : admin (Conservation des données ou fiche du colis) et agent retrait de l'agence (espace Retraits) |
 | Colis non réclamés : signalement | 30 jours | 7 jours | Information |
-| Colis non réclamés : suppression | 90 jours | 60 jours | **Manuel uniquement** |
+| Colis non réclamés : suppression (liste conservée) | 365 jours (1 an) | 60 jours | Auto + manuel (admin, motif obligatoire) ; chiffres archivés dans les Rapports |
 | Listings vides | 30 jours | 7 jours | Auto + manuel |
-| Messages | 180 jours | 30 jours | Auto + manuel |
-| Codes et compteurs de connexion | 24 heures | 1 heure | Auto + manuel |
+| Messages | 180 jours | 30 jours | Auto + manuel. Chacun (expéditeur et destinataire) supprime à tout moment dans sa propre messagerie ; quand les deux l'ont supprimé, le message est effacé définitivement de la base |
+| Codes « mot de passe oublié » | Effacés dès leur usage | — | Automatique : code utilisé, remplacé, expiré ou 5 essais faux → effacé de la base |
+| Compteurs de connexion | 24 heures | 1 heure | Auto + manuel |
 | Présence « en ligne » bloquée | 12 heures | 2 heures | Auto + manuel |
 | Journal des nettoyages | 2 ans | 180 jours | Auto + manuel |
 | Comptes agents désactivés (réactivables avant) | 30 jours | 7 jours | Auto + manuel (fiche résumée conservée dans `agents_archives`) |
@@ -47,7 +49,7 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 
 - **Mot de passe administrateur** redemandé pour tout nettoyage manuel, toute suppression de colis et toute modification des règles (vérifié dans la base, pas dans le navigateur).
 - **Minimums** imposés par la base : une faute de frappe (ex. « 1 jour ») ne peut pas tout effacer.
-- **Jamais de suppression automatique** d'un colis Enregistré, En transit ou Disponible.
+- **Jamais de suppression automatique** d'un colis Enregistré ou En transit. Un colis Disponible n'est supprimé qu'après 1 an sans être réclamé (chiffres archivés d'abord).
 - **Archivage avant suppression** : `stats_archive` garde, par agence et par mois, le nombre de colis, le montant encaissé et la valeur déclarée. Aucune donnée personnelle n'y figure.
 - **Journal** (`purge_journal`) : date, type (automatique, planifié, manuel, colis), auteur, détail, et motif pour une suppression unitaire.
 - **Cycle fermé côté base** : le site ne peut plus supprimer directement de colis, d'historique ou de listing avec la clé publique. Toute suppression passe par les fonctions du cycle de vie.
@@ -71,7 +73,8 @@ Chaque donnée a une entrée, une durée de vie et une sortie, et chaque sortie 
 
 1. Faire une **sauvegarde** : Supabase > Database > Backups (ou exporter les tables en CSV).
 2. Exécuter `sql/cycle_de_vie_donnees_migration.sql`. Il se termine par un **aperçu** qui ne supprime rien.
-   Puis `sql/agents_desactivation_modification_migration.sql`, puis `sql/liste_retraits_migration.sql`.
+   Puis `sql/agents_desactivation_modification_migration.sql`, puis `sql/liste_retraits_migration.sql`,
+   puis `sql/messagerie_codes_non_reclames_migration.sql`.
 3. Ouvrir Admin.html > Conservation des données, vérifier les chiffres « éligibles maintenant ».
 4. Si les durées vous conviennent, laisser le nettoyage automatique activé ; sinon, les ajuster d'abord.
 5. (Conseillé) Activer `pg_cron` pour un passage chaque nuit à 3 h (heure du Cameroun).
