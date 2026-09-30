@@ -1,0 +1,795 @@
+/* ==========================================================
+   COLIGO — socle visuel commun
+   ----------------------------------------------------------
+   Chargé par TOUTES les pages (index, agent, retrait, Admin,
+   signup). Contient :
+     1. les couleurs de la marque (une seule source de vérité)
+     2. le fond photo + son voile
+     3. le rail de navigation latéral (identique agent/retraits)
+     4. les réglages typographiques communs
+
+   Logo : assets/logo-coligo.png (version couleur, pour fonds
+   clairs) et assets/logo-coligo-blanc.png (version blanche, pour
+   les fonds sombres : rails, en-tête de l'accueil client).
+   Si vous changez de charte, il suffit de modifier les variables
+   ci-dessous : tout le reste de l'application suit.
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- Bleu de marque (chrome : boutons, liens, états actifs) ---- */
+  --brand-deep:   #0C3F65;   /* rails, en-têtes sombres        */
+  --brand-dark:   #14537E;   /* survol des actions             */
+  --brand:        #1D6FA8;   /* couleur d'action principale    */
+  --brand-bright: #368AC8;   /* bleu d'accent (survols, états) */
+  --brand-wash:   #E8F2F9;   /* fonds teintés légers           */
+  --brand-wash-2: #D3E6F4;
+
+  /* ---- Signalisation : ces couleurs veulent dire quelque chose ---- */
+  --st-wait:      #5B6B7F;   --st-wait-bg:   #EDF1F6;  /* Enregistré */
+  --st-move:      #0E6F94;   --st-move-bg:   #E2F1F8;  /* En transit */
+  --st-ready:     #B4690E;   --st-ready-bg:  #FDF2E2;  /* Disponible */
+  --st-done:      #15795A;   --st-done-bg:   #E5F4EF;  /* Retiré     */
+  --danger:       #B42318;   --danger-bg:    #FDECEA;
+  --ok:           #15795A;   --ok-bg:        #E5F4EF;
+  --warn:         #B4690E;   --warn-bg:      #FDF2E2;
+
+  /* ---- Neutres ---- */
+  --ink:      #14202D;
+  --ink-2:    #33455A;
+  --muted:    #64778D;
+  --line:     #DCE5EE;
+  --line-2:   #EFF3F7;
+  --surface:  #FFFFFF;
+  --canvas:   #F4F7FA;
+
+  /* ---- Ombres : une seule, déclinée par profondeur ---- */
+  --lift-1: 0 1px 2px rgba(12, 63, 101, 0.06);
+  --lift-2: 0 2px 4px rgba(12, 63, 101, 0.06), 0 8px 20px -12px rgba(12, 63, 101, 0.22);
+  --lift-3: 0 4px 10px rgba(12, 63, 101, 0.08), 0 24px 48px -24px rgba(12, 63, 101, 0.35);
+
+  --rail-w: 252px;
+
+  --font-display: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* ==========================================================
+   1. Fond photo
+   ----------------------------------------------------------
+   La photo est volontairement floutée et assombrie (voir le
+   filter ci-dessous) : elle sert d'ambiance en arrière-plan, pas
+   de visuel à regarder en détail. Pour en changer, il suffit de
+   modifier --fond-photo ci-dessous (une URL, ou un fichier posé
+   dans assets/, ex. url('assets/fond.jpg')).
+
+   La lisibilité ne dépend pas de la photo :
+     - tout le contenu repose sur des cartes blanches opaques ;
+     - les rares textes posés directement sur le fond (titres de
+       page, en-tête de l'accueil) sont portés par une « plaque »
+       claire (.photo-plate), quelle que soit la photo choisie ;
+     - si la photo ne charge pas, le dégradé bleu de la marque
+       prend le relais.
+
+   Photo actuelle : le car "VIP Transport Confort" blanc que vous avez
+   fourni, seul (assets/bus-vip-confort-fond.jpg). Floutée et assombrie
+   ci-dessous pour rester une simple ambiance de fond.
+   ========================================================== */
+
+:root {
+  --fond-photo: url('../assets/bus-vip-confort-fond.jpg');
+}
+
+.app-bg::before {
+  content: '';
+  position: fixed;
+  inset: -20px;
+  background-color: var(--brand-deep);
+  background-image:
+    var(--fond-photo),
+    linear-gradient(160deg, #0C3F65 0%, #1D6FA8 55%, #368AC8 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(3px) brightness(0.5) saturate(1.15);
+  z-index: -1;
+}
+
+/* Plaque de lisibilité : pour le texte posé directement sur la photo. */
+.photo-plate,
+header:has(> .on-photo) {
+  background: rgba(255, 255, 255, 0.90);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
+  padding: 12px 20px;
+  box-shadow: var(--lift-2);
+  width: fit-content;
+  max-width: 100%;
+}
+.photo-plate-center { margin-left: auto; margin-right: auto; }
+
+/* Texte sur plaque : couleurs franches. (Le halo blanc ne sert que de
+   secours aux navigateurs qui ne connaissent pas :has().) */
+.on-photo {
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.8);
+}
+.on-photo-sub {
+  color: var(--ink-2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.photo-plate .on-photo, .photo-plate .on-photo-sub,
+header:has(> .on-photo) .on-photo, header:has(> .on-photo) .on-photo-sub { text-shadow: none; }
+
+/* Logo COLIGO : image transparente, hauteur fixée, largeur automatique. */
+.brand-img { display: block; height: auto; width: auto; max-width: 100%; }
+.brand-img-sm { height: 26px; }
+.brand-img-md { height: 34px; }
+.brand-img-lg { height: 44px; }
+
+/* ==========================================================
+   2. Typographie
+   ========================================================== */
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.014em;
+}
+
+/* Numéros de suivi, montants, dates : chiffres de largeur fixe,
+   pour qu'ils s'alignent en colonne dans les tableaux. */
+table, .nums, input[type="number"], .numero, td, th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.numero {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ==========================================================
+   3. Rail de navigation latéral
+   ----------------------------------------------------------
+   Utilisé tel quel par agent.html et retrait.html, et repris
+   à l'identique par .admin-sidebar dans css/admin.css.
+   ========================================================== */
+
+.rail {
+  background: linear-gradient(175deg, var(--brand-deep) 0%, #08314F 100%);
+  color: #E6EFF7;
+}
+
+.rail-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+.rail-brand-sub {
+  font-size: 0.68rem;
+  color: #8FB4D2;
+  letter-spacing: 0.02em;
+}
+
+.rail-item {
+  display: flex;
+  align-items: flex-start;   /* l'icône reste alignée sur la 1re ligne
+                                quand le libellé passe sur deux lignes */
+  gap: 11px;
+  line-height: 1.35;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: 9px;
+  font-size: 0.895rem;
+  font-weight: 500;
+  color: #B9D0E4;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.rail-item:hover { background: rgba(255, 255, 255, 0.07); color: #FFFFFF; }
+.rail-item.is-active {
+  background: rgba(54, 138, 200, 0.22);
+  border-left-color: var(--brand-bright);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.rail-item svg { width: 17px; height: 17px; flex: none; opacity: 0.9; margin-top: 1px; }
+.rail-item.is-active svg { opacity: 1; }
+
+.rail-divider { border-top: 1px solid rgba(255, 255, 255, 0.13); }
+
+.rail-avatar {
+  background: var(--brand-bright);
+  color: #052033;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.rail-who-name { color: #FFFFFF; }
+.rail-who-sub  { color: #8FB4D2; }
+
+.rail-logout {
+  color: #C2D6E7;
+}
+.rail-logout:hover {
+  background: rgba(180, 35, 24, 0.24);
+  color: #FFD9D5;
+}
+
+/* ==========================================================
+   4. Détails partagés
+   ========================================================== */
+
+/* Messages d'état (utilisés par signup.js). Ils disent ce qui s'est
+   passé et comment s'en sortir : ni excuse, ni formulation vague. */
+.error-box {
+  background: var(--danger-bg); color: var(--danger);
+  border: 1px solid #F6C9C4; border-radius: 10px;
+  padding: 11px 14px; font-size: 0.88rem; margin-bottom: 14px;
+}
+.success-box {
+  background: var(--ok-bg); color: var(--ok);
+  border: 1px solid #B9E2D3; border-radius: 10px;
+  padding: 11px 14px; font-size: 0.88rem; margin-bottom: 14px;
+}
+.success-box a { color: var(--ok); font-weight: 600; text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--brand-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 13px; height: 13px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* Barres de défilement discrètes, dans le ton de l'interface. */
+/* Tableaux un peu plus denses partout : moins de risque de dépassement
+   horizontal, tout en restant lisible. */
+table { font-size: 0.86em; }
+table th, table td { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #B9C7D6 transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: #B9C7D6;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #93A6B9; background-clip: content-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================
+   5. Messagerie interne (agent.html, retrait.html, Admin.html)
+   ----------------------------------------------------------
+   Le composant est construit par js/messagerie.js et stylé ICI,
+   sans dépendre ni de Tailwind ni de admin.css : c'est ce qui le
+   rend identique dans les trois espaces.
+   ========================================================== */
+
+.msg-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.68rem; font-weight: 700;
+  margin-left: auto;
+}
+/* Sélecteur à deux classes : l'emporte toujours sur .msg-badge, quel que
+   soit l'ordre de chargement entre theme.css et le Tailwind du CDN. */
+.msg-badge.hidden { display: none; }
+
+
+/* ==========================================================
+   Messagerie — présentation façon WhatsApp
+   ----------------------------------------------------------
+   Deux colonnes : liste des discussions à gauche, conversation
+   ouverte (bulles) à droite. Sur mobile, une seule colonne à la
+   fois (on bascule entre les deux). Construit par js/messagerie.js.
+   ========================================================== */
+
+.msg-shell {
+  --wa-header: #075E54;
+  --wa-header-dark: #054C40;
+  --wa-bg: #E9E0D3;
+  --wa-sent: #DCF8C6;
+  --wa-received: #FFFFFF;
+  --wa-accent: #25D366;
+  font-family: var(--font-body); color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--lift-2, 0 2px 10px rgba(12,63,101,0.08));
+  display: flex;
+  height: min(74vh, 640px);
+  min-height: 420px;
+  background: var(--surface);
+}
+.msg-shell *, .msg-shell *::before, .msg-shell *::after { box-sizing: border-box; }
+.msg-shell [hidden] { display: none !important; }
+
+/* ---------- Colonne de gauche : liste des discussions ---------- */
+
+.msg-sidebar {
+  width: 340px; flex: none;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+.msg-sidebar-head {
+  background: var(--wa-header); color: #fff;
+  padding: 16px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.msg-sidebar-head h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.msg-nouvelle-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,0.14); border: none; color: #fff; cursor: pointer;
+}
+.msg-nouvelle-btn:hover { background: rgba(255,255,255,0.24); }
+.msg-nouvelle-btn svg { width: 18px; height: 18px; }
+
+.msg-conv-liste { flex: 1; overflow-y: auto; }
+.msg-conv-empty { color: var(--muted); font-size: 0.88rem; padding: 24px 18px; text-align: center; }
+
+.msg-conv-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--line-2);
+  background: transparent;
+}
+.msg-conv-item:hover { background: var(--brand-wash); }
+.msg-conv-item.is-active { background: var(--brand-wash-2); }
+
+.msg-avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 0.95rem;
+  background: var(--brand-bright);
+}
+.msg-avatar.is-broadcast { background: var(--wa-header); }
+.msg-avatar svg { width: 22px; height: 22px; }
+
+.msg-conv-body { flex: 1; min-width: 0; }
+.msg-conv-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.msg-conv-nom { font-weight: 600; font-size: 0.93rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-conv-heure { font-size: 0.72rem; color: var(--muted); flex: none; }
+.msg-conv-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.msg-conv-apercu {
+  font-size: 0.83rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.msg-conv-badge {
+  flex: none; min-width: 20px; height: 20px; padding: 0 6px;
+  border-radius: 999px; background: var(--wa-accent); color: #fff;
+  font-size: 0.7rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ---------- Colonne de droite : conversation ouverte ---------- */
+
+.msg-thread { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--wa-bg); }
+.msg-thread-vide {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 0.9rem; gap: 10px; text-align: center; padding: 20px;
+}
+.msg-thread-vide svg { width: 56px; height: 56px; opacity: 0.35; }
+
+.msg-thread-head {
+  background: var(--wa-header); color: #fff;
+  padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex: none;
+}
+.msg-retour {
+  display: none; background: none; border: none; color: #fff; cursor: pointer; padding: 4px;
+}
+.msg-retour svg { width: 22px; height: 22px; }
+.msg-thread-nom { font-weight: 600; font-size: 0.98rem; }
+.msg-thread-sous { font-size: 0.76rem; opacity: 0.85; }
+
+.msg-bulles {
+  flex: 1; overflow-y: auto; padding: 16px 5%;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.msg-bulle-ligne { display: flex; margin: 3px 0; }
+.msg-bulle-ligne.is-sent { justify-content: flex-end; }
+.msg-bulle-ligne.is-received { justify-content: flex-start; }
+
+.msg-bulle {
+  max-width: 68%; padding: 7px 9px 6px 10px;
+  border-radius: 9px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  font-size: 0.88rem; line-height: 1.4;
+  position: relative;
+}
+.msg-bulle.is-sent { background: var(--wa-sent); border-top-right-radius: 2px; }
+.msg-bulle.is-received { background: var(--wa-received); border-top-left-radius: 2px; }
+.msg-bulle-auteur { font-size: 0.78rem; font-weight: 700; color: var(--brand-bright); margin-bottom: 2px; }
+.msg-bulle-texte { white-space: pre-wrap; overflow-wrap: anywhere; color: #111b21; margin: 0; }
+.msg-bulle-pied {
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  font-size: 0.68rem; color: rgba(0,0,0,0.45); margin-top: 2px; margin-left: 12px; float: right;
+}
+.msg-bulle-pied svg { width: 15px; height: 15px; }
+.msg-bulle-supprimer {
+  position: absolute; top: -8px; right: -8px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line); color: var(--danger);
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.msg-bulle:hover .msg-bulle-supprimer { display: flex; }
+.msg-bulle-supprimer svg { width: 12px; height: 12px; }
+.msg-bulle.is-received .msg-bulle-supprimer { right: auto; left: -8px; }
+/* Écrans tactiles : pas de survol, la corbeille reste visible (discrète). */
+@media (hover: none) { .msg-bulle-supprimer { display: flex; opacity: 0.75; } }
+.msg-vider-btn {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.msg-vider-btn:hover { background: rgba(255,255,255,0.26); }
+.msg-vider-btn svg { width: 14px; height: 14px; }
+@media (max-width: 480px) { .msg-vider-btn span { display: none; } }
+
+.msg-jour-separateur {
+  align-self: center; background: rgba(255,255,255,0.85); color: var(--muted);
+  font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 8px;
+  margin: 10px 0; box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+}
+
+.msg-lecture-seule {
+  text-align: center; font-size: 0.78rem; color: var(--muted);
+  background: var(--brand-wash); padding: 8px 14px; margin: 0 5% 10px;
+  border-radius: 8px;
+}
+
+.msg-saisie {
+  flex: none; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 10px 14px; display: flex; align-items: flex-end; gap: 10px;
+}
+.msg-saisie textarea {
+  flex: 1; resize: none; max-height: 120px;
+  border: 1px solid var(--line); border-radius: 20px;
+  padding: 10px 16px; font: inherit; font-size: 0.9rem; line-height: 1.35;
+  background: var(--line-2); color: var(--ink);
+}
+.msg-saisie textarea:focus { outline: none; border-color: var(--brand-bright); background: var(--surface); }
+.msg-saisie textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.msg-envoyer-btn {
+  flex: none; width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: var(--wa-accent); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.msg-envoyer-btn:hover { background: #1FAE55; }
+.msg-envoyer-btn:disabled { opacity: 0.5; cursor: default; }
+.msg-envoyer-btn svg { width: 19px; height: 19px; margin-left: 2px; }
+
+.msg-thread-erreur {
+  margin: 0 5% 8px; padding: 8px 13px; border-radius: 9px; font-size: 0.83rem;
+  background: var(--danger-bg); color: var(--danger);
+}
+
+/* ---------- Fenêtre "Nouvelle discussion" ---------- */
+
+.msg-nouvelle-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center; z-index: 20;
+  border-radius: 14px;
+}
+.msg-nouvelle-panneau {
+  background: var(--surface); border-radius: 12px; width: min(380px, 90%);
+  max-height: 80%; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: var(--lift-3);
+}
+.msg-nouvelle-tete {
+  background: var(--wa-header); color: #fff; padding: 14px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.msg-nouvelle-tete h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+.msg-nouvelle-fermer { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; }
+.msg-nouvelle-fermer svg { width: 18px; height: 18px; }
+.msg-nouvelle-liste { overflow-y: auto; padding: 6px 0; }
+.msg-nouvelle-groupe-titre {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); padding: 10px 18px 4px;
+}
+.msg-nouvelle-item {
+  display: flex; align-items: center; gap: 12px; padding: 9px 18px; cursor: pointer;
+}
+.msg-nouvelle-item:hover { background: var(--brand-wash); }
+.msg-nouvelle-item .msg-conv-nom { display: block; }
+.msg-nouvelle-item .msg-conv-sous { font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- Bouton cloche (barre du haut, en dehors du composant) ---------- */
+
+.msg-cloche {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; font: inherit; font-size: 0.88rem; font-weight: 500;
+}
+.msg-cloche svg { width: 19px; height: 19px; flex: none; }
+.msg-cloche:hover { background: var(--brand-wash); }
+
+@media (max-width: 760px) {
+  .msg-shell { height: min(80vh, 640px); border-radius: 10px; }
+  .msg-sidebar { width: 100%; border-right: none; }
+  .msg-sidebar, .msg-thread { display: none; }
+  .msg-shell.is-thread-open .msg-thread { display: flex; }
+  .msg-shell:not(.is-thread-open) .msg-sidebar { display: flex; }
+  .msg-retour { display: inline-flex; align-items: center; justify-content: center; }
+  .msg-bulle { max-width: 82%; }
+}
+
+
+
+/* ==========================================================
+   Tableaux ajustés à la largeur de l'écran
+   ----------------------------------------------------------
+   Les classes tf-1 / tf-2 sont posées automatiquement par js/ui-helpers.js
+   quand un tableau est trop large (voir ce fichier pour le principe).
+   ========================================================== */
+
+/* Niveau 1 : resserré (numéros, téléphones et montants d'un seul tenant) */
+table.tf-1 { font-size: 0.8rem; }
+table.tf-1 thead th {
+  white-space: normal; padding: 7px 6px; font-size: 0.66rem; line-height: 1.25; letter-spacing: 0.02em;
+}
+table.tf-1 tbody td {
+  white-space: normal; padding: 8px 6px; vertical-align: top; line-height: 1.35; overflow-wrap: break-word;
+}
+table.tf-1 tbody td.tf-nb, table.tf-1 tbody .tf-nb { white-space: nowrap; }
+table.tf-1 .cell-desc { max-width: none; }
+table.tf-1 tbody td .badge-statut { padding: 2px 8px; font-size: 0.68rem; }
+
+/* Niveau 2 : plus serré (téléphones et montants peuvent passer sur deux lignes, entre les mots) */
+table.tf-2 { font-size: 0.76rem; }
+table.tf-2 thead th {
+  white-space: normal; padding: 6px 5px; font-size: 0.62rem; line-height: 1.2; letter-spacing: 0.01em;
+}
+table.tf-2 tbody td {
+  white-space: normal; padding: 7px 5px; vertical-align: top; line-height: 1.32; overflow-wrap: break-word;
+}
+table.tf-2 tbody td.tf-nb, table.tf-2 tbody .tf-nb { white-space: normal; }
+table.tf-2 .cell-desc { max-width: none; }
+table.tf-2 tbody td .badge-statut { padding: 2px 7px; font-size: 0.64rem; }
+
+/* ==========================================================
+   Espace agent — carte « Aperçu du jour » et météo
+   ========================================================== */
+.apercu-carte {
+  background: linear-gradient(145deg, #0C3F65 0%, #1D6FA8 70%, #368AC8 100%);
+  color: #fff;
+  box-shadow: var(--lift-2, 0 10px 24px -12px rgba(12,63,101,.45));
+  min-height: 168px;
+}
+.apercu-agence {
+  font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+.apercu-date { font-size: 1.05rem; font-weight: 700; line-height: 1.25; }
+.apercu-heure {
+  font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,.8);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Carte météo : fond animé + texte adapté ---------- */
+.meteo-carte {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 168px;
+  box-shadow: var(--lift-2, 0 10px 24px -12px rgba(12,63,101,.45));
+  border: 1px solid rgba(255,255,255,.35);
+}
+.meteo-fond { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.meteo-contenu { position: relative; }
+.mf-ciel { position: absolute; inset: 0; transition: background .8s ease; }
+.mf-voile { position: absolute; inset: 0; }
+
+/* Ciels */
+.meteo-scene-soleil .mf-ciel      { background: linear-gradient(160deg, #1B78C9 0%, #3E9BE0 55%, #7CC3F2 100%); }
+.meteo-scene-nuageux .mf-ciel     { background: linear-gradient(160deg, #2A6FA8 0%, #5A93C2 60%, #93B9D8 100%); }
+.meteo-scene-couvert .mf-ciel     { background: linear-gradient(160deg, #4B5D72 0%, #6E8095 60%, #8D9CAD 100%); }
+.meteo-scene-bruine .mf-ciel      { background: linear-gradient(160deg, #405468 0%, #62788E 100%); }
+.meteo-scene-pluie .mf-ciel       { background: linear-gradient(160deg, #2D3E52 0%, #4A6078 60%, #5E7389 100%); }
+.meteo-scene-pluie-nuit .mf-ciel  { background: linear-gradient(160deg, #0E1726 0%, #1E2D44 100%); }
+.meteo-scene-orage .mf-ciel       { background: linear-gradient(160deg, #161C2B 0%, #2B3548 55%, #3C4659 100%); }
+.meteo-scene-brouillard .mf-ciel  { background: linear-gradient(160deg, #C9D3DD 0%, #E3E8EE 100%); }
+.meteo-scene-nuit .mf-ciel        { background: linear-gradient(160deg, #0A1430 0%, #172A55 60%, #25407A 100%); }
+.meteo-scene-nuit-nuageux .mf-ciel{ background: linear-gradient(160deg, #111A2E 0%, #26334D 100%); }
+
+/* Voile de lisibilité : plus dense du côté du texte */
+.meteo-texte-sombre .mf-voile { background: linear-gradient(90deg, rgba(5,15,30,.42) 0%, rgba(5,15,30,.18) 55%, rgba(5,15,30,.05) 100%); }
+.meteo-texte-clair  .mf-voile { background: linear-gradient(90deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.2) 60%, rgba(255,255,255,0) 100%); }
+
+/* Couleurs du texte selon le fond */
+.meteo-texte-sombre { color: #fff; }
+.meteo-texte-sombre .meteo-titre { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.meteo-texte-sombre .meteo-sous  { color: rgba(255,255,255,.88); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.meteo-texte-sombre .meteo-temp  { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.meteo-texte-clair { color: #0F2A44; }
+.meteo-texte-clair .meteo-titre { color: #0F2A44; }
+.meteo-texte-clair .meteo-sous  { color: #334B63; }
+.meteo-texte-clair .meteo-temp  { color: #0C3F65; }
+
+.meteo-temp {
+  font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+  font-size: 2rem; font-weight: 800; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.meteo-icone-principale svg { filter: drop-shadow(0 3px 6px rgba(0,0,0,.25)); }
+
+/* Villes : petites pastilles « verre dépoli », défilement horizontal si besoin */
+.meteo-villes {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.meteo-ville {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 9px 5px 6px;
+  border-radius: 10px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.meteo-texte-sombre .meteo-ville { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28); }
+.meteo-texte-clair  .meteo-ville { background: rgba(255,255,255,.65); border: 1px solid rgba(15,42,68,.12); }
+.meteo-ville-nom  { font-size: 10.5px; line-height: 1.1; opacity: .9; max-width: 78px; }
+.meteo-ville-temp { font-size: 13px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+
+/* Soleil */
+.mf-soleil {
+  position: absolute; top: -34px; right: -26px; width: 130px; height: 130px; border-radius: 50%;
+  background: radial-gradient(circle, #FFE58A 0%, #FFC83D 45%, rgba(255,200,61,0) 72%);
+  animation: mf-pulse 5s ease-in-out infinite;
+}
+.meteo-scene-nuageux .mf-soleil { opacity: .8; }
+.mf-rayons {
+  position: absolute; inset: -40px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,230,140,.28) 0deg 8deg, transparent 8deg 22deg);
+  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%);
+  animation: mf-tourne 40s linear infinite;
+}
+/* Lune et étoiles */
+.mf-lune {
+  position: absolute; top: 14px; right: 26px; width: 46px; height: 46px; border-radius: 50%;
+  box-shadow: inset -12px 4px 0 0 #F3F0D7; filter: drop-shadow(0 0 12px rgba(243,240,215,.45));
+}
+.mf-etoile {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
+  animation: mf-scintille 3s ease-in-out infinite;
+}
+/* Nuages */
+.mf-nuage {
+  position: absolute; left: -40%; width: 150px; height: 46px; border-radius: 46px;
+  background: rgba(255,255,255,.78);
+  transform: scale(var(--echelle, 1));
+  animation: mf-derive 55s linear infinite;
+}
+.mf-nuage::before, .mf-nuage::after { content: ""; position: absolute; background: inherit; border-radius: 50%; }
+.mf-nuage::before { width: 62px; height: 62px; top: -30px; left: 24px; }
+.mf-nuage::after  { width: 82px; height: 82px; top: -44px; left: 62px; }
+.meteo-scene-couvert .mf-nuage, .meteo-scene-bruine .mf-nuage { background: rgba(214,222,232,.55); }
+.meteo-scene-pluie .mf-nuage, .meteo-scene-pluie-nuit .mf-nuage,
+.meteo-scene-orage .mf-nuage, .meteo-scene-nuit-nuageux .mf-nuage { background: rgba(120,135,158,.45); }
+.meteo-scene-brouillard .mf-nuage { background: rgba(255,255,255,.7); }
+/* Pluie */
+.mf-pluie { position: absolute; inset: 0; transform: rotate(8deg) scale(1.15); }
+.mf-pluie span {
+  position: absolute; top: -20%; width: 1.5px; height: 16px; border-radius: 2px;
+  background: linear-gradient(to bottom, rgba(210,230,255,0), rgba(210,230,255,.95));
+  animation: mf-tombe .8s linear infinite;
+}
+.meteo-scene-bruine .mf-pluie span { height: 8px; }
+/* Orage */
+.mf-eclair { position: absolute; inset: 0; background: rgba(235,240,255,.9); opacity: 0; animation: mf-flash 7s infinite; }
+.mf-foudre {
+  position: absolute; top: 6px; right: 18%; width: 26px; height: 78px; fill: #FFE68A;
+  filter: drop-shadow(0 0 10px rgba(255,230,138,.9)); opacity: 0; animation: mf-flash 7s infinite;
+}
+/* Brouillard */
+.mf-brume { position: absolute; left: -50%; width: 200%; height: 40px; border-radius: 40px; background: rgba(255,255,255,.6); filter: blur(10px); }
+.mf-brume-1 { top: 35%; animation: mf-glisse 18s ease-in-out infinite alternate; }
+.mf-brume-2 { top: 68%; animation: mf-glisse 24s ease-in-out infinite alternate-reverse; }
+
+@keyframes mf-tourne { to { transform: rotate(360deg); } }
+@keyframes mf-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes mf-scintille { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes mf-derive { from { left: -40%; } to { left: 110%; } }
+@keyframes mf-tombe { from { transform: translateY(0); } to { transform: translateY(260px); } }
+@keyframes mf-flash {
+  0%, 88%, 100% { opacity: 0; }
+  89% { opacity: .85; } 90% { opacity: .1; } 91.5% { opacity: .7; } 93% { opacity: 0; }
+}
+@keyframes mf-glisse { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .meteo-fond *, .meteo-fond *::before, .meteo-fond *::after { animation: none !important; }
+}
+
+/* ==========================================================
+   Cartes « Aperçu du jour » + météo : rangée réutilisable
+   (Service d'expédition, Service de retrait, Service Administratif)
+   Les classes ci-dessous rendent la météo identique même sur la page
+   Administration, qui n'utilise pas Tailwind.
+   ========================================================== */
+.apercu-rangee { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
+@media (min-width: 1024px) { .apercu-rangee { grid-template-columns: 2fr 3fr; } }
+.apercu-carte { border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+.apercu-libelle { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.75); }
+.apercu-sous { font-size: 12px; color: rgba(255,255,255,.8); margin-top: 6px; }
+.apercu-bas { margin-top: 16px; }
+.meteo-carte { border-radius: 16px; }
+.meteo-contenu { padding: 20px; }
+.meteo-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.meteo-entete h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.meteo-carte .flex { display: flex; }
+.meteo-carte .items-center { align-items: center; }
+.meteo-carte .items-baseline { align-items: baseline; }
+.meteo-carte .flex-wrap { flex-wrap: wrap; }
+.meteo-carte .gap-3 { gap: 12px; }
+.meteo-carte .gap-2\.5 { gap: 10px; }
+.meteo-carte .shrink-0 { flex-shrink: 0; }
+.meteo-carte .min-w-0 { min-width: 0; }
+.meteo-carte .text-xs { font-size: 12px; }
+.meteo-carte .text-sm { font-size: 14px; }
+.meteo-carte .text-\[11px\] { font-size: 11px; }
+.meteo-carte .font-semibold { font-weight: 600; }
+.meteo-carte .mt-0\.5 { margin-top: 2px; }
+.meteo-carte .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meteo-carte .inline-block { display: inline-block; }
+.meteo-carte .w-1\.5 { width: 6px; }
+.meteo-carte .h-1\.5 { height: 6px; }
+.meteo-carte .rounded-full { border-radius: 9999px; }
+.meteo-carte .bg-emerald-400 { background: #34d399; }
+.meteo-carte .mr-1\.5 { margin-right: 6px; }
+.meteo-carte .align-middle { vertical-align: middle; }
+
+/* « Changer d'espace » : visible uniquement sur téléphone/tablette (menu
+   déroulant), masqué sur ordinateur dans tous les espaces. */
+.btn-changer-espace { display: none !important; }
+@media (max-width: 1023px) { .rail-item.btn-changer-espace { display: flex !important; } }
+@media (max-width: 900px)  { .admin-nav-item.btn-changer-espace { display: flex !important; } }
