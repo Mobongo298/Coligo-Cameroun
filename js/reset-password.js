@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     envoisCount = 1;
     $('forgot-sent-msg').textContent = data.email_masque
-      ? `Un code a été envoyé à ${data.email_masque}. Il est valable 10 minutes.`
+      ? `Un code a été envoyé à ${data.email_masque}. Il est valable 10 minutes. Pensez à vérifier vos courriers indésirables (spam).`
       : "Un code a été envoyé par e-mail. Il est valable 10 minutes.";
     step1.classList.add('hidden');
     step2.classList.remove('hidden');
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       envoisCount++;
       $('forgot-sent-msg').textContent = data.email_masque
-        ? `Un nouveau code a été envoyé à ${data.email_masque}. Il est valable 10 minutes.`
+        ? `Un nouveau code a été envoyé à ${data.email_masque}. Il est valable 10 minutes. Pensez à vérifier vos courriers indésirables (spam).`
         : "Un nouveau code a été envoyé par e-mail. Il est valable 10 minutes.";
       $('forgot-code').value = '';
 

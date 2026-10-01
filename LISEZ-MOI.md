@@ -124,14 +124,17 @@ Le script `sql/schema.sql` active déjà la réplication temps réel pour les ta
    → Cela ajoute une colonne `email` aux comptes, et permet à chacun (admin, agent, retrait) de
    recevoir un code à 6 chiffres par e-mail depuis l'écran de connexion, pour choisir un nouveau
    mot de passe sans intervention d'un administrateur.
-3. Pour que les e-mails partent réellement (sinon le code est bien créé mais reste dans la base,
-   invisible pour l'agent) :
-   - Créez un compte gratuit sur **https://resend.com** (jusqu'à 3000 e-mails/mois offerts).
-   - Copiez votre clé API (commence par `re_`).
-   - Dans Supabase, **SQL Editor > New query**, lancez (avec votre propre clé) :
-     ```sql
-     update email_settings set resend_api_key = 're_VOTRE_CLE_ICI' where id = 1;
-     ```
+3. **Envoi réel des e-mails — méthode recommandée (relais Google, gratuit, sans nom de domaine)** :
+   exécutez `sql/email_reset_fix.sql`, puis suivez les étapes écrites en tête de `email-relay/Code.gs`
+   (Google Apps Script, 5 minutes) et lancez la commande `update email_settings ...` qu'il indique.
+   Vérifiez avec `select test_envoi_email('votre.adresse@gmail.com');` : le résultat doit contenir
+   `"ok": true` et l'e-mail doit arriver. Toute tentative d'envoi (réussie ou non) est notée dans la
+   table `email_log` avec la cause exacte de l'échec.
+   *(L'ancienne méthode Resend sans domaine vérifié n'envoie qu'à l'adresse du propriétaire du compte
+   Resend : elle ne peut pas fonctionner pour vos agents. Elle reste disponible si vous possédez un
+   domaine vérifié chez Resend : `update email_settings set provider='resend', resend_api_key='re_...',
+   from_email='COLIGO <no-reply@votredomaine.com>' where id=1;`)*
+   L'écran n'affiche désormais « Un code a été envoyé » que si l'e-mail a réellement été accepté.
 4. Les comptes créés **avant** cette étape n'ont pas d'e-mail. Depuis le tableau de bord
    administrateur, onglet **Agents**, un bouton **« Ajouter un e-mail »** apparaît sur chaque
    compte qui n'en a pas encore — un clic suffit pour le renseigner. Les comptes créés depuis
