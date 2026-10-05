@@ -901,7 +901,7 @@ body:has(.rail, .admin-sidebar, .admin-auth-screen) { background: var(--canvas);
    gauche (là où se place le logo) et le réseau à droite. */
 body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::before {
   background-image: url('../assets/fond-reseau.jpg'); background-size: cover; background-position: center;
-  filter: none; inset: 0; transform: scaleX(-1);
+  filter: none; inset: 0; background-color: #F4F8FC;
 }
 body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::after { display: none; }
 body:has(.rail) main, body .admin-main { background: transparent; min-height: 100vh; max-width: none; width: 100%; }
@@ -1001,3 +1001,24 @@ body.client-page .bg-white.rounded-2xl { box-shadow: var(--lift-2); }
   body :is(.on-photo) { font-size: 1.3rem; }
 }
 @media print { body, body main, body .admin-main { background: #fff !important; } }
+
+/* ==========================================================
+   7. Fond réseau premium + cartes en verre (admin, agent, retrait)
+   ========================================================== */
+body:has(.rail, .admin-sidebar, .admin-auth-screen) {
+  background: #F4F8FC url('../assets/fond-reseau.jpg') center / cover no-repeat;
+}
+@media (min-width: 1024px) { body:has(.rail, .admin-sidebar) { background-attachment: fixed; } }
+/* Lueur douce à gauche : le contenu reste net, le réseau reste visible à droite */
+body:has(.rail, .admin-sidebar).app-bg::after {
+  display: block; content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 70% at 18% 30%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
+}
+body:has(.rail, .admin-sidebar) :is(.bg-white.rounded-2xl, .admin-card, .filter-bar) {
+  background: rgba(255,255,255,.86);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1); backdrop-filter: blur(8px) saturate(1.1);
+  border-color: rgba(255,255,255,.8);
+  box-shadow: 0 1px 2px rgba(12,63,101,.05), 0 12px 32px -16px rgba(12,63,101,.28);
+}
+body .admin-topbar { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+body:has(.rail, .admin-sidebar) table thead th { background: rgba(244,248,252,.9); }
