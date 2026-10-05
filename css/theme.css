@@ -793,3 +793,199 @@ table.tf-2 tbody td .badge-statut { padding: 2px 7px; font-size: 0.64rem; }
 .btn-changer-espace { display: none !important; }
 @media (max-width: 1023px) { .rail-item.btn-changer-espace { display: flex !important; } }
 @media (max-width: 900px)  { .admin-nav-item.btn-changer-espace { display: flex !important; } }
+
+/* ==========================================================
+   5. Couche de finition (design system v2)
+   ----------------------------------------------------------
+   Jetons d'espacement/rayons, états d'interaction, tableaux,
+   fenêtres, mobile. Purement visuel : aucune logique modifiée.
+   ========================================================== */
+
+:root {
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --ring: 0 0 0 3px rgba(29, 111, 168, 0.28);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* Fond : la photo reste, mais plus nette et plus calme (plus de flou lourd). */
+.app-bg::before { filter: brightness(0.62) saturate(1.05); inset: 0; }
+.app-bg::after {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 49, 79, .55), rgba(8, 49, 79, .35));
+}
+
+/* Focus clavier visible et uniforme */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none; box-shadow: var(--ring); border-radius: var(--r-sm);
+}
+:where(input, select, textarea):focus { border-color: var(--brand-bright); }
+
+/* Boutons : états hover / active / disabled / loading */
+.admin-btn, button[class*="btn"], .btn {
+  transition: background .15s var(--ease), box-shadow .15s var(--ease), transform .08s var(--ease);
+}
+.admin-btn { border-radius: var(--r-sm); box-shadow: var(--lift-1); }
+.admin-btn:hover:not(:disabled) { box-shadow: var(--lift-2); }
+.admin-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.admin-btn:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
+.is-loading { position: relative; color: transparent !important; pointer-events: none; }
+.is-loading::after {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%;
+  animation: coligo-spin .7s linear infinite;
+}
+@keyframes coligo-spin { to { transform: rotate(360deg); } }
+
+/* Champs */
+.admin-field input, .admin-field select, .admin-field textarea {
+  border-radius: var(--r-sm); transition: border-color .15s, box-shadow .15s;
+}
+.admin-field input:hover, .admin-field select:hover { border-color: #B9C8D8; }
+input:disabled, select:disabled, textarea:disabled { background: var(--canvas); color: var(--muted); }
+:where(input, select, textarea):user-invalid { border-color: var(--danger); }
+:where(input, select, textarea):user-invalid:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, .18); }
+
+/* Cartes et fenêtres */
+.admin-auth-box, .card, .carte { border-radius: var(--r-lg); }
+[role="dialog"], .modal-box, .modal-card { border-radius: var(--r-lg); box-shadow: var(--lift-3); }
+
+/* Tableaux : en-tête lisible, survol de ligne, séparateurs discrets */
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+table thead th {
+  background: var(--canvas); color: var(--ink-2); font-weight: 600; font-size: .78rem;
+  letter-spacing: .01em; text-align: left; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 1;
+}
+table tbody td { border-bottom: 1px solid var(--line-2); }
+table tbody tr { transition: background .12s; }
+table tbody tr:hover { background: var(--brand-wash); }
+table tbody tr:last-child td { border-bottom: 0; }
+
+/* États vides et chargement */
+.table-state, .empty-state { color: var(--muted); text-align: center; padding: 36px 12px; }
+.skeleton {
+  background: linear-gradient(90deg, var(--line-2) 25%, var(--line) 37%, var(--line-2) 63%);
+  background-size: 400% 100%; animation: coligo-shimmer 1.3s ease infinite; border-radius: var(--r-sm);
+}
+@keyframes coligo-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* Barres de défilement fines */
+* { scrollbar-width: thin; scrollbar-color: #B9C8D8 transparent; }
+
+/* Mobile : cibles tactiles confortables, pas de zoom iOS, zones sûres */
+@media (max-width: 640px) {
+  input, select, textarea { font-size: 16px !important; }
+  .admin-btn, button, .rail-item { min-height: 44px; }
+  .admin-auth-box { padding: 26px 20px; border-radius: var(--r-md); }
+  body { padding-bottom: env(safe-area-inset-bottom, 0); }
+}
+@media (min-width: 1600px) { :root { --rail-w: 272px; } }
+
+/* Respect de « réduire les animations » */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* ==========================================================
+   6. Refonte des pages (agent, retrait, administration, public)
+   ----------------------------------------------------------
+   Espaces de travail : zone claire et calme (plus de texte posé
+   sur la photo). Pages publiques : la photo reste l'ambiance.
+   Sélecteurs préfixés « body » pour l'emporter sur Tailwind CDN.
+   ========================================================== */
+
+/* -- Espaces de travail ------------------------------------ */
+body:has(.rail, .admin-sidebar) { background: var(--canvas); }
+body:has(.rail, .admin-sidebar)::before,
+body:has(.rail, .admin-sidebar)::after { display: none; }
+body:has(.rail, .admin-sidebar).app-bg::before,
+body:has(.rail, .admin-sidebar).app-bg::after { display: none; }
+body:has(.rail) main { background: var(--canvas); min-height: 100vh; max-width: none; width: 100%; }
+body:has(.rail) main > section > .view-inner,
+body:has(.rail) main > section { max-width: 1152px; margin-inline: auto; }
+
+/* En-têtes de page : titre net, sous-titre discret, sans plaque */
+body:has(.rail) header:has(> .on-photo) {
+  background: none; border: 0; box-shadow: none; padding: 0; width: auto;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+body:has(.rail) .on-photo { color: var(--ink); text-shadow: none; font-size: 1.5rem; line-height: 1.2; letter-spacing: -0.02em; }
+body:has(.rail) .on-photo-sub { color: var(--muted); text-shadow: none; }
+
+/* Cartes de contenu : une seule famille */
+body :is(.bg-white.rounded-2xl, .admin-card) {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--lift-1);
+}
+body .admin-card { padding: 22px; margin-bottom: 20px; box-shadow: var(--lift-1); }
+body :is(.bg-white.rounded-2xl) h2.text-coligo,
+body .admin-card h3 { color: var(--ink); font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+
+/* Champs Tailwind harmonisés avec .admin-field */
+body :is(input, select, textarea).rounded-lg,
+body .filter-bar :is(input, select) {
+  border: 1.5px solid var(--line); border-radius: var(--r-sm); background: #fff;
+  color: var(--ink); min-height: 42px; padding: 9px 12px;
+}
+body :is(input, select, textarea).rounded-lg:focus { border-color: var(--brand-bright); box-shadow: var(--ring); outline: none; }
+body label.block { color: var(--ink-2); font-weight: 500; font-size: .84rem; margin-bottom: 6px; }
+
+/* Boutons Tailwind : primaire / secondaire cohérents */
+body button.bg-coligo, body button.bg-coligo.rounded-xl {
+  background: var(--brand); border-radius: var(--r-sm); min-height: 42px; box-shadow: var(--lift-1);
+}
+body button.bg-coligo:hover { background: var(--brand-dark); box-shadow: var(--lift-2); }
+body button.border-slate-300 {
+  border: 1.5px solid var(--line); border-radius: var(--r-sm); min-height: 40px;
+  background: #fff; color: var(--ink-2); font-weight: 500;
+}
+body button.border-slate-300:hover { background: var(--canvas); border-color: #B9C8D8; }
+
+/* Rail : repères plus fins, déconnexion séparée */
+body .rail { border-right: 1px solid rgba(255,255,255,.06); }
+body .rail-item { border-left: 0; position: relative; }
+body .rail-item.is-active::before {
+  content: ''; position: absolute; left: -16px; top: 9px; bottom: 9px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--brand-bright);
+}
+body .rail-logout { margin-top: 12px; border-top: 1px solid rgba(255,255,255,.1); border-radius: 0 0 9px 9px; padding-top: 14px; }
+
+/* Administration : barre du haut et cartes statistiques */
+body .admin-topbar { padding: 14px 28px; background: rgba(255,255,255,.92); }
+body .admin-topbar h1 { font-size: 1.15rem; color: var(--ink); }
+body .admin-main { background: var(--canvas); min-height: 100vh; }
+body .filter-bar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px; }
+body .badge-statut, body .badge-compte, body .badge-online, body .badge-offline {
+  border-radius: 999px; padding: 3px 10px; font-weight: 600; font-size: .75rem;
+}
+
+/* Fenêtres : fond estompé, entrée discrète */
+body [role="dialog"], body .modal-box, body .modal-card { animation: coligo-pop .18s var(--ease); max-height: 92vh; overflow-y: auto; }
+@keyframes coligo-pop { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* Notifications (toasts) alignées sur la même famille */
+body :is(.toast, .success-box) { border-radius: var(--r-md); box-shadow: var(--lift-3); }
+
+/* -- Pages publiques (accueil client, inscription, hub, connexion) -- */
+body.client-page main, body .admin-auth-box { box-shadow: var(--lift-3); }
+body .admin-auth-box { border: 1px solid rgba(255,255,255,.6); }
+body .admin-auth-box h2 { color: var(--ink); font-size: 1.4rem; }
+body.client-page .bg-white.rounded-2xl { box-shadow: var(--lift-2); }
+
+/* -- Responsive : vraie recomposition, pas seulement réduction ---- */
+@media (max-width: 1023px) {
+  body:has(.rail) main { padding: 16px 14px 88px; }
+  body .admin-topbar { padding: 12px 14px; }
+  body .admin-card { padding: 16px; border-radius: var(--r-md); }
+  body .filter-bar { flex-direction: column; align-items: stretch; }
+  body .filter-bar .f-group, body .filter-bar input, body .filter-bar select { width: 100%; }
+  body .rail { box-shadow: var(--lift-3); }
+}
+@media (max-width: 640px) {
+  body .modal-grid { grid-template-columns: 1fr; }
+  body [role="dialog"], body .modal-box, body .modal-card { width: calc(100vw - 20px); max-width: none; border-radius: var(--r-md); }
+  body :is(.bg-white.rounded-2xl) { border-radius: var(--r-md); padding: 16px; }
+  body :is(.on-photo) { font-size: 1.3rem; }
+}
+@media print { body, body main, body .admin-main { background: #fff !important; } }
