@@ -31,17 +31,33 @@
 <link rel="icon" type="image/png" href="assets/favicon-coligo.png">
 <link rel="stylesheet" href="css/theme.css">
 <style>
-  /* Espace client : le texte repose directement sur la photo de fond,
-     sans plaque blanche derrière. On passe donc en texte clair avec une
-     ombre portée sombre, pour rester lisible sur un fond flouté/assombri. */
-  .client-page .on-photo {
-    color: #ffffff;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(0, 0, 0, 0.5);
+  /* Espace client : photo de fond NETTE et propre (gestion de colis COLIGO).
+     Uniquement cette page : les autres espaces gardent leur fond habituel (theme.css).
+     Aucun flou, aucun voile sombre, aucun filtre : la photo s'affiche telle quelle.
+     Le dégradé bleu ne sert que de secours si la photo ne charge pas. */
+  .client-page.app-bg::before {
+    inset: 0;
+    background-image:
+      url('assets/fond-espace-client.jpg'),
+      linear-gradient(160deg, #0C3F65 0%, #1D6FA8 55%, #368AC8 100%);
+    background-size: cover, cover;
+    background-position: 38% center, center;
+    filter: none;
   }
-  .client-page .on-photo-sub {
-    color: rgba(255, 255, 255, 0.88);
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  /* Le thème pose d'habitude un voile bleu sombre par-dessus la photo : retiré ici. */
+  .client-page.app-bg::after { display: none; }
+  /* Le texte ne repose jamais directement sur la photo : il est posé sur une plaque
+     blanche (la photo, elle, n'est ni voilée ni floutée). */
+  .client-page .photo-plate {
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
+  .client-page section.photo-plate { padding: 24px 20px; width: 100%; }
+  /* Pas d'ombre portée autour de la colonne centrale : elle dessinait un halo rectangulaire sur la photo. */
+  body.client-page main { box-shadow: none; }
+  .client-page .on-photo { color: #0C3F65; text-shadow: none; }
+  .client-page .on-photo-sub { color: #475569; text-shadow: none; }
   .client-page .brand-name { color: #ffffff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
   .client-page .brand-sub { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
 
@@ -65,7 +81,7 @@
 
 <main class="px-4 lg:px-8 pb-16 max-w-3xl mx-auto">
 
-  <section class="text-center my-8 lg:my-12">
+  <section class="text-center my-8 lg:my-12 photo-plate">
     <h1 class="text-3xl lg:text-5xl font-bold mb-4 on-photo tracking-tight">Où en est votre colis&nbsp;?</h1>
     <p class="max-w-lg mx-auto on-photo-sub">
       Entrez votre numéro de suivi pour connaître le statut de votre colis, en temps réel.
@@ -102,7 +118,7 @@
     </div>
   </div>
 
-  <p class="text-center text-xs mt-12 on-photo-sub">
+  <p class="text-center text-xs mt-12 on-photo-sub photo-plate w-fit mx-auto">
     COLIGO · suivi de colis en temps réel
   </p>
 </main>

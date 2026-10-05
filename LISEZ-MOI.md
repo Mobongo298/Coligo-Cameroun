@@ -30,6 +30,13 @@ cinq pages suivent automatiquement.
   se charge depuis internet ; sans connexion, un dégradé bleu de la marque la remplace.
   Pour changer de photo : `css/theme.css`, ligne `--fond-photo` (une URL, ou un fichier posé
   dans `assets/`, par exemple `url('assets/fond.jpg')`).
+- **Fond de l'espace client** : `index.html` utilise sa propre photo, `assets/fond-espace-client.jpg`
+  (gestion de colis, reçus COLIGO, numéros de suivi floutés). Elle s'affiche nette, sans flou ni voile,
+  et seulement sur cette page. Les textes posés dessus reposent sur une plaque blanche. Pour la changer :
+  remplacez le fichier (même nom) ou modifiez `.client-page.app-bg::before` dans `index.html`.
+- **Écrans de connexion (bleu, blanc, vert)** : les connexions Expédition, Retrait et Administratif ajoutent un vert
+  intense (bouton, liseré, halo, bande du bas). Tout est en fin de `css/theme.css` (section 9), limité à
+  `.admin-auth-screen` : le reste de l'application reste bleu, et le vert des statuts garde son sens.
 - **Typographie** : Archivo pour les titres et les chiffres, Inter pour le texte. Les
   numéros de suivi et les montants utilisent des chiffres de largeur fixe, pour
   s'aligner proprement en colonne dans les tableaux.

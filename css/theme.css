@@ -1033,3 +1033,70 @@ html:has(.rail, .admin-sidebar, .admin-auth-screen) {
 html body:has(.rail, .admin-sidebar, .admin-auth-screen) { background: transparent !important; }
 html body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::before,
 html body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::after { display: none !important; }
+
+
+/* ==========================================================
+   9. Écrans de connexion : bleu + blanc + vert intense
+   ----------------------------------------------------------
+   Concerne uniquement .admin-auth-screen (connexion des espaces
+   Expédition, Retrait et Administratif). Le reste de l'application
+   garde le bleu de marque : le vert « Retiré » des statuts garde
+   ainsi son sens. Pour changer le vert, modifiez ces 3 variables.
+   ========================================================== */
+.admin-auth-screen {
+  --vert:        #00A651;   /* vert intense : accents, halo, focus   */
+  --vert-action: #07823B;   /* bouton principal (texte blanc lisible) */
+  --vert-hover:  #056B32;
+
+  /* Halo vert en bas, halo bleu en haut : par-dessus le fond réseau blanc/bleu */
+  background:
+    radial-gradient(65% 60% at 100% 100%, rgba(0, 166, 81, 0.50), rgba(0, 166, 81, 0) 72%),
+    radial-gradient(45% 50% at 0% 100%,  rgba(0, 166, 81, 0.30), rgba(0, 166, 81, 0) 72%),
+    radial-gradient(45% 40% at 0% 0%,    rgba(29, 111, 168, 0.18), rgba(29, 111, 168, 0) 70%);
+}
+
+/* Carte blanche : liseré bleu → vert en haut, ombre légèrement verte */
+.admin-auth-screen .admin-auth-box {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(0, 166, 81, 0.22);
+  box-shadow: 0 4px 10px rgba(12, 63, 101, 0.08), 0 24px 48px -24px rgba(0, 120, 60, 0.38);
+}
+.admin-auth-screen .admin-auth-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, #1D6FA8 0%, #1D6FA8 40%, #00A651 60%, #00A651 100%);
+}
+/* Petit trait vert sous le titre */
+.admin-auth-screen .admin-auth-box h2::after {
+  content: '';
+  display: block; width: 44px; height: 4px; margin-top: 8px;
+  border-radius: 4px; background: #00A651;
+}
+
+/* Champs : focus vert */
+.admin-auth-screen .admin-field input:focus,
+.admin-auth-screen .admin-field select:focus {
+  border-color: var(--vert);
+  box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.22);
+}
+
+/* Bouton principal : vert intense */
+.admin-auth-screen .admin-btn {
+  background: var(--vert-action);
+  box-shadow: 0 6px 14px -6px rgba(0, 130, 59, 0.55);
+}
+.admin-auth-screen .admin-btn:hover:not(:disabled) { background: var(--vert-hover); }
+.admin-auth-screen .admin-btn:focus-visible { box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.35); }
+
+/* Liens : le bleu reste, le survol passe au vert */
+.admin-auth-screen .auth-link:hover { color: var(--vert-action); }
+.admin-auth-screen .pw-toggle:hover { color: var(--vert-action); background: rgba(0, 166, 81, 0.10); }
+
+/* Bande bleu · blanc · vert collée en bas de l'écran de connexion */
+.admin-auth-screen::after {
+  content: '';
+  position: fixed; left: 0; right: 0; bottom: 0; height: 8px; z-index: 5; pointer-events: none;
+  background: linear-gradient(90deg, #1D6FA8 0 33.34%, #FFFFFF 33.34% 66.66%, #00A651 66.66% 100%);
+  box-shadow: 0 -1px 6px rgba(12, 63, 101, 0.18);
+}
