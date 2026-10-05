@@ -46,18 +46,39 @@
   }
   /* Le thème pose d'habitude un voile bleu sombre par-dessus la photo : retiré ici. */
   .client-page.app-bg::after { display: none; }
-  /* Le texte ne repose jamais directement sur la photo : il est posé sur une plaque
-     blanche (la photo, elle, n'est ni voilée ni floutée). */
+  /* Les textes posés sur la photo reposent sur une bande de verre teintée de bleu :
+     translucide (la photo se devine à travers) mais assez dense pour que le texte
+     blanc reste toujours lisible, quelle que soit la zone de la photo derrière. */
   .client-page .photo-plate {
-    background: rgba(255, 255, 255, 0.94);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    background: rgba(12, 63, 101, 0.52);
+    -webkit-backdrop-filter: blur(5px) saturate(1.25);
+    backdrop-filter: blur(5px) saturate(1.25);
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   }
   .client-page section.photo-plate { padding: 24px 20px; width: 100%; }
   /* Pas d'ombre portée autour de la colonne centrale : elle dessinait un halo rectangulaire sur la photo. */
   body.client-page main { box-shadow: none; }
-  .client-page .on-photo { color: #0C3F65; text-shadow: none; }
-  .client-page .on-photo-sub { color: #475569; text-shadow: none; }
+  /* Carte de recherche : même verre translucide que les bandes de texte.
+     Le champ de saisie reste presque opaque pour que ce que l'on tape soit toujours lisible. */
+  .client-page .search-glass {
+    background: rgba(12, 63, 101, 0.52);
+    -webkit-backdrop-filter: blur(5px) saturate(1.25);
+    backdrop-filter: blur(5px) saturate(1.25);
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  .client-page .search-glass label { color: #ffffff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); font-weight: 600; }
+  .client-page .search-glass input {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: #14202D;
+  }
+  .client-page .search-glass button {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 6px 14px -6px rgba(0, 0, 0, 0.5);
+  }
+  .client-page .on-photo { color: #ffffff; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55); }
+  .client-page .on-photo-sub { color: rgba(255, 255, 255, 0.95); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
   .client-page .brand-name { color: #ffffff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
   .client-page .brand-sub { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
 
@@ -88,7 +109,7 @@
     </p>
   </section>
 
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-5 lg:p-6 mb-6">
+  <div class="search-glass rounded-2xl p-5 lg:p-6 mb-6">
     <label class="block text-sm text-slate-600 mb-2" for="numero-input">Numéro de suivi</label>
     <div class="flex flex-col sm:flex-row gap-3">
       <input id="numero-input" type="text" autocomplete="off"
