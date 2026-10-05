@@ -7,7 +7,7 @@
   jamais afficher d'information périmée ou fausse.
 */
 
-const CACHE_NAME = "coligo-shell-v12";
+const CACHE_NAME = "coligo-shell-v13";
 
 const SHELL_FILES = [
   "./index.html",
@@ -71,18 +71,17 @@ self.addEventListener("fetch", (event) => {
   // Seules les requêtes GET peuvent être mises en cache.
   if (req.method !== "GET") return;
 
+  // Réseau d'abord : les mises à jour du site apparaissent tout de suite ;
+  // le cache ne sert que hors connexion.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
-        .then((res) => {
-          if (res.ok && req.url.startsWith(self.location.origin)) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-    })
+    fetch(req)
+      .then((res) => {
+        if (res.ok && req.url.startsWith(self.location.origin)) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
