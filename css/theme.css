@@ -1022,3 +1022,14 @@ body:has(.rail, .admin-sidebar) :is(.bg-white.rounded-2xl, .admin-card, .filter-
 }
 body .admin-topbar { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 body:has(.rail, .admin-sidebar) table thead th { background: rgba(244,248,252,.9); }
+
+/* ==========================================================
+   8. Fond réseau vectoriel (net à toute taille) posé sur <html>
+   ========================================================== */
+html:has(.rail, .admin-sidebar, .admin-auth-screen) {
+  background: #F4F8FC url('../assets/fond-reseau.svg') center / cover no-repeat;
+}
+@media (min-width: 1024px) { html:has(.rail, .admin-sidebar, .admin-auth-screen) { background-attachment: fixed; } }
+html body:has(.rail, .admin-sidebar, .admin-auth-screen) { background: transparent !important; }
+html body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::before,
+html body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::after { display: none !important; }
