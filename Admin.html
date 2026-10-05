@@ -217,6 +217,18 @@
       <!-- ---------- Vue : Agents ---------- -->
       <section class="admin-view" id="view-agents">
         <h2 class="view-title">Agents</h2>
+        <div class="admin-card" id="card-agences">
+          <h3>Agences</h3>
+          <p class="muted-admin" style="margin:-6px 0 14px;font-size:.88rem">Choisissez une ville, ou « Autre… » pour la saisir. Le code de 3 lettres devient le début des numéros de suivi (ex. BTA000001/26).</p>
+          <div class="filter-bar">
+            <div class="f-group"><label for="ag-ville">Ville</label><select id="ag-ville"></select></div>
+            <div class="f-group" id="ag-nom-wrap" style="display:none"><label for="ag-nom">Nom de la ville</label><input id="ag-nom" type="text" maxlength="40"></div>
+            <div class="f-group"><label for="ag-code">Code (3 lettres)</label><input id="ag-code" type="text" maxlength="3" style="text-transform:uppercase;width:90px"></div>
+            <button id="ag-add" class="admin-btn" type="button">Ajouter l'agence</button>
+          </div>
+          <p id="ag-msg" style="min-height:1.2em;font-size:.88rem;margin:0 0 10px"></p>
+          <div id="agences-liste"></div>
+        </div>
         <div class="admin-card">
           <div class="admin-table-wrap"><table class="admin-table" id="table-agents">
             <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Agence</th><th>Statut</th><th>Depuis</th><th>Compte</th><th></th></tr></thead>
@@ -306,6 +318,7 @@
 <script src="js/receipt.js"></script>
 <script src="js/listing-detail.js"></script>
 <script src="js/config.js"></script>
+<script src="js/agences.js"></script>
 <script src="js/reset-password.js"></script>
 <script src="js/meteo.js"></script>
 <script src="js/admin.js"></script>

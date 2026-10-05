@@ -58,6 +58,10 @@ const AGENCE_CODES = { douala: 'DLA', yaounde: 'YDE' };
 // Yaoundé et Douala. Utile pour l'auto-remplissage à l'enregistrement
 // ET pour cibler "l'agence d'en face" (temps réel, listings reçus…).
 function villeArriveePour(agence) {
+  // Avec exactement deux agences : l'autre. Avec plus : l'agent choisit sa destination (agent.js).
+  const autres = (typeof AGENCES !== 'undefined' ? AGENCES : [])
+    .filter(a => normalizeCity(a.nom) !== normalizeCity(agence));
+  if (autres.length === 1) return autres[0].nom;
   return normalizeCity(agence) === 'douala' ? 'Yaoundé' : 'Douala';
 }
 

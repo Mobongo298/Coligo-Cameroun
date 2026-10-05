@@ -207,7 +207,7 @@ function demarrerTempsReel(agent) {
         afficherColis(colisTrouve);
       }
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'listings', filter: `agence=eq.${villeArriveePour(agent.agence)}` }, () => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'listings', }, () => {
       chargerListingsRecus();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'retraits', filter: `agence=eq.${agent.agence}` }, () => {

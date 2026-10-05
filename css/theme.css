@@ -896,14 +896,26 @@ table tbody tr:last-child td { border-bottom: 0; }
    ========================================================== */
 
 /* -- Espaces de travail ------------------------------------ */
-body:has(.rail, .admin-sidebar) { background: var(--canvas); }
-body:has(.rail, .admin-sidebar)::before,
-body:has(.rail, .admin-sidebar)::after { display: none; }
-body:has(.rail, .admin-sidebar).app-bg::before,
-body:has(.rail, .admin-sidebar).app-bg::after { display: none; }
-body:has(.rail) main { background: var(--canvas); min-height: 100vh; max-width: none; width: 100%; }
-body:has(.rail) main > section > .view-inner,
+body:has(.rail, .admin-sidebar, .admin-auth-screen) { background: var(--canvas); }
+/* Fond d'écran : réseau bleu. Image retournée pour que la zone dégagée soit à
+   gauche (là où se place le logo) et le réseau à droite. */
+body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::before {
+  background-image: url('../assets/fond-reseau.jpg'); background-size: cover; background-position: center;
+  filter: none; inset: 0; transform: scaleX(-1);
+}
+body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::after { display: none; }
+body:has(.rail) main, body .admin-main { background: transparent; min-height: 100vh; max-width: none; width: 100%; }
 body:has(.rail) main > section { max-width: 1152px; margin-inline: auto; }
+/* Logo bleu des écrans de connexion : à gauche de la page */
+body .admin-auth-box > img.brand-img-lg, body .admin-auth-screen img.brand-img-lg {
+  position: fixed; top: 24px; left: 32px; margin: 0 !important; z-index: 5;
+}
+@media (max-width: 640px) { body .admin-auth-box > img.brand-img-lg { top: 14px; left: 16px; height: 34px; } }
+.ag-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+.ag-ligne:last-child { border-bottom: 0; }
+.ag-ligne .admin-btn { background: #fff; color: var(--danger); border: 1.5px solid var(--line); min-height: 36px; box-shadow: none; }
+.ag-ligne .admin-btn:hover:not(:disabled) { background: var(--danger-bg); }
 
 /* En-têtes de page : titre net, sous-titre discret, sans plaque */
 body:has(.rail) header:has(> .on-photo) {

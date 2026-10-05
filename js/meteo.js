@@ -22,6 +22,15 @@ const METEO_VILLES = [
   { nom: 'Ebolowa',    lat: 2.9000,  lon: 11.1500 },
   { nom: 'Buea',       lat: 4.1527,  lon: 9.2410 }
 ];
+// Villes d'agence supplémentaires (météo de l'agence seulement, pas dans le défilé).
+const METEO_VILLES_EXTRA = [
+  { nom: 'Kribi', lat: 2.9400, lon: 9.9100 }, { nom: 'Limbé', lat: 4.0186, lon: 9.2056 },
+  { nom: 'Edéa', lat: 3.8000, lon: 10.1333 }, { nom: 'Dschang', lat: 5.4439, lon: 10.0533 },
+  { nom: 'Kumba', lat: 4.6363, lon: 9.4469 }, { nom: 'Nkongsamba', lat: 4.9547, lon: 9.9404 },
+  { nom: 'Foumban', lat: 5.7266, lon: 10.8992 }, { nom: 'Mbouda', lat: 5.6256, lon: 10.2547 },
+  { nom: 'Mbalmayo', lat: 3.5167, lon: 11.5 }, { nom: 'Sangmélima', lat: 2.9333, lon: 11.9833 },
+  { nom: 'Yokadouma', lat: 3.5167, lon: 15.05 }
+];
 const METEO_INTERVALLE_MS = 10 * 60 * 1000;
 let meteoMinuteur = null;
 let meteoDernierAppel = 0;
@@ -136,7 +145,7 @@ async function chargerMeteo() {
 
   const session = (typeof getSession === 'function') ? getSession() : null;
   const agence = session ? meteoNorm(session.agence) : '';
-  const principale = METEO_VILLES.find(v => meteoNorm(v.nom) === agence) || METEO_VILLES[0];
+  const principale = METEO_VILLES.concat(METEO_VILLES_EXTRA).find(v => meteoNorm(v.nom) === agence) || METEO_VILLES[0];
   const autres = METEO_VILLES.filter(v => v !== principale).slice(0, 9);
   const villes = [principale, ...autres];
 

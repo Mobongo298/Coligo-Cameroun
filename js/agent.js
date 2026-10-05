@@ -51,7 +51,7 @@ function showDashboard(agent) {
 
   // Départ = l'agence de l'agent, arrivée = l'autre agence. Plus de saisie manuelle.
   document.getElementById('f-depart-affichage').textContent = agent.agence;
-  document.getElementById('f-arrivee-affichage').textContent = villeArriveePour(agent.agence);
+  chargerAgences().then(() => { peuplerDestinations(agent); loadListingsPendants(); });
 
   loadColisList();
   loadListingsPendants();
@@ -222,7 +222,7 @@ document.getElementById('btn-create').addEventListener('click', async () => {
   const destinataire = document.getElementById('f-destinataire').value.trim();
   const destinataireTel = document.getElementById('f-destinataire-tel').value.trim();
   const depart = agent.agence;
-  const arrivee = villeArriveePour(agent.agence);
+  const arrivee = (document.getElementById('f-arrivee-select') || {}).value || villeArriveePour(agent.agence);
   const description = document.getElementById('description').value.trim();
   const montant = parseFloat(document.getElementById('f-montant').value);
 
@@ -231,10 +231,10 @@ document.getElementById('btn-create').addEventListener('click', async () => {
     return;
   }
 
-  if (!['yaounde', 'douala'].includes(normalizeCity(agent.agence))) {
+  if (!AGENCES.some(a => normalizeCity(a.nom) === normalizeCity(agent.agence))) {
     errorZone.innerHTML = msgError(
       `Votre compte n'a pas d'agence reconnue (valeur actuelle : "${agent.agence || 'vide'}"). ` +
-      `Un administrateur doit corriger votre agence (Yaoundé ou Douala) dans Supabase avant que vous puissiez enregistrer des colis.`
+      `Un administrateur doit corriger votre agence (une agence créée dans l'espace administrateur) dans Supabase avant que vous puissiez enregistrer des colis.`
     );
     return;
   }
@@ -339,6 +339,13 @@ function ligneListingHtml(c) {
   </tr>`;
 }
 
+function peuplerDestinations(agent) {
+  const autres = AGENCES.filter(a => normalizeCity(a.nom) !== normalizeCity(agent.agence));
+  const sel = document.getElementById('f-arrivee-select'), cur = sel.value;
+  sel.innerHTML = autres.map(a => `<option value="${esc(a.nom)}">${esc(a.nom)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+let destListing = '';
 async function loadListingsPendants() {
   const agent = getSession();
   const { data, error } = await supabaseClient
@@ -349,7 +356,14 @@ async function loadListingsPendants() {
     .order('created_at', { ascending: true });
 
   if (error) return;
-  const enAttente = data || [];
+  const toutes = data || [];
+  const dests = [...new Set(toutes.map(c => c.ville_arrivee).filter(Boolean))];
+  const wrap = document.getElementById('listing-dest-wrap'), ds = document.getElementById('listing-dest');
+  if (!dests.includes(destListing)) destListing = dests[0] || '';
+  wrap.classList.toggle('hidden', dests.length < 2);
+  ds.innerHTML = dests.map(d => `<option value="${esc(d)}"${d === destListing ? ' selected' : ''}>${esc(d)}</option>`).join('');
+  ds.onchange = () => { destListing = ds.value; loadListingsPendants(); };
+  const enAttente = dests.length < 2 ? toutes : toutes.filter(c => c.ville_arrivee === destListing);
 
   bgEnAttente = enAttente.filter(c => estColisBG(c.Description_du_colis));
   bulkEnAttente = enAttente.filter(c => !estColisBG(c.Description_du_colis));

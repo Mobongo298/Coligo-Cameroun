@@ -7,7 +7,7 @@
   jamais afficher d'information périmée ou fausse.
 */
 
-const CACHE_NAME = "coligo-shell-v13";
+const CACHE_NAME = "coligo-shell-v15";
 
 const SHELL_FILES = [
   "./index.html",
@@ -20,6 +20,8 @@ const SHELL_FILES = [
   "./css/auth.css",
   "./css/admin.css",
   "./js/config.js",
+  "./js/agences.js",
+  "./assets/fond-reseau.jpg",
   "./js/ui-helpers.js",
   "./js/install.js",
   "./js/client.js",
