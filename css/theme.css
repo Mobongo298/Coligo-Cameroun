@@ -1100,3 +1100,113 @@ html body:has(.rail, .admin-sidebar, .admin-auth-screen).app-bg::after { display
   background: linear-gradient(90deg, #1D6FA8 0 33.34%, #FFFFFF 33.34% 66.66%, #00A651 66.66% 100%);
   box-shadow: 0 -1px 6px rgba(12, 63, 101, 0.18);
 }
+
+/* ==========================================================
+   10. Finition demandée — fond visible dans l'administration
+      + boutons verts dans tous les espaces
+   ========================================================== */
+
+/* Le fond réseau doit traverser toute la zone de travail admin.
+   Le .admin-main opaque masquait la photo/illustration du fond. */
+body:has(.admin-sidebar) .admin-main,
+body:has(.admin-sidebar) .admin-content,
+body:has(.admin-sidebar) .admin-view {
+  background: transparent !important;
+}
+
+/* Barre supérieure vitrée : le fond reste visible derrière. */
+body:has(.admin-sidebar) .admin-topbar {
+  background: rgba(255, 255, 255, 0.78) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
+}
+
+/* Toutes les actions/boutons de la plateforme utilisent désormais le vert COLIGO. */
+:root {
+  --action-green: #07823B;
+  --action-green-hover: #056B32;
+  --action-green-bright: #00A651;
+}
+
+/* Boutons natifs et composants de la plateforme */
+button,
+.admin-btn,
+.btn,
+button[class*="btn"],
+a[role="button"] {
+  background-color: var(--action-green) !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  border-color: var(--action-green) !important;
+}
+
+button:hover:not(:disabled),
+.admin-btn:hover:not(:disabled),
+.btn:hover:not(:disabled),
+button[class*="btn"]:hover:not(:disabled),
+a[role="button"]:hover:not([aria-disabled="true"]) {
+  background-color: var(--action-green-hover) !important;
+  border-color: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+}
+
+button:active:not(:disabled),
+.admin-btn:active:not(:disabled),
+.btn:active:not(:disabled),
+button[class*="btn"]:active:not(:disabled) {
+  background-color: #045B2A !important;
+  border-color: #045B2A !important;
+}
+
+/* Variantes qui étaient blanches, bleues ou rouges : elles deviennent
+   elles aussi vertes lorsqu'il s'agit réellement d'un bouton d'action. */
+.admin-btn.ghost,
+.admin-btn.ghost-danger,
+.admin-btn.danger,
+body button.border-slate-300,
+body button.bg-coligo,
+body button.bg-coligo.rounded-xl,
+body .alerte-voir {
+  background: var(--action-green) !important;
+  color: #FFFFFF !important;
+  border-color: var(--action-green) !important;
+}
+
+.admin-btn.ghost:hover:not(:disabled),
+.admin-btn.ghost-danger:hover:not(:disabled),
+.admin-btn.danger:hover:not(:disabled),
+body button.border-slate-300:hover:not(:disabled),
+body button.bg-coligo:hover:not(:disabled),
+body button.bg-coligo.rounded-xl:hover:not(:disabled),
+body .alerte-voir:hover:not(:disabled) {
+  background: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+  border-color: var(--action-green-hover) !important;
+}
+
+/* Les contrôles purement décoratifs/non-action restent inchangés. */
+.pw-toggle,
+.resend-link,
+.alerte-fermer,
+.admin-menu-toggle,
+button[aria-label="Ouvrir le menu"] {
+  background: transparent !important;
+  color: inherit !important;
+  border-color: transparent !important;
+}
+
+/* Boutons de navigation/segmentation : vert lorsqu'ils sont de vrais boutons. */
+.rap-preset,
+.rap-seg button {
+  background: var(--action-green) !important;
+  color: #FFFFFF !important;
+  border-color: var(--action-green) !important;
+}
+.rap-preset:hover:not(:disabled),
+.rap-seg button:hover:not(:disabled),
+.rap-preset.active,
+.rap-seg button.active {
+  background: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+  border-color: var(--action-green-hover) !important;
+}
