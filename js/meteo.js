@@ -5,8 +5,8 @@
 // et sans inscription. Les données sont actualisées toutes les 10 minutes
 // (et dès que l'onglet redevient visible). Le fond de la carte est une
 // scène animée (soleil, nuages, pluie, orage, nuit, brouillard) qui suit le
-// temps actuel de la ville de l'agence. La ville de l'agence est mise
-// en avant ; les autres grandes villes du pays sont affichées en dessous.
+// temps actuel de la ville de l'agence. Seule la météo de la ville de
+// l'agence est affichée (pas de liste des autres villes).
 // Aucune donnée COLIGO n'est envoyée : seules des coordonnées de villes.
 // ==========================================================
 
@@ -138,20 +138,21 @@ function meteoArrondi(n) { return (n === null || n === undefined || isNaN(n)) ? 
 // ---------- Chargement ----------
 async function chargerMeteo() {
   const zoneMain = document.getElementById('meteo-principale');
-  const zoneVilles = document.getElementById('meteo-villes');
   const maj = document.getElementById('meteo-maj');
-  if (!zoneMain || !zoneVilles) return;
+  if (!zoneMain) return;
   meteoDernierAppel = Date.now();
 
+  // Ville de l'agence de la session ; sans agence (espace administratif) : Douala.
   const session = (typeof getSession === 'function') ? getSession() : null;
   const agence = session ? meteoNorm(session.agence) : '';
-  const principale = METEO_VILLES.concat(METEO_VILLES_EXTRA).find(v => meteoNorm(v.nom) === agence) || METEO_VILLES[0];
-  const autres = METEO_VILLES.filter(v => v !== principale).slice(0, 9);
-  const villes = [principale, ...autres];
+  const trouvee = METEO_VILLES.concat(METEO_VILLES_EXTRA).find(v => meteoNorm(v.nom) === agence);
+  const principale = trouvee || METEO_VILLES[0];
+
+  const titre = document.querySelector('#meteo-carte h2');
+  if (titre) titre.textContent = 'Météo · ' + principale.nom;
 
   const url = 'https://api.open-meteo.com/v1/forecast'
-    + '?latitude=' + villes.map(v => v.lat).join(',')
-    + '&longitude=' + villes.map(v => v.lon).join(',')
+    + '?latitude=' + principale.lat + '&longitude=' + principale.lon
     + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m'
     + '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max'
     + '&forecast_days=1&timezone=Africa%2FDouala';
@@ -159,17 +160,16 @@ async function chargerMeteo() {
   try {
     const rep = await fetch(url);
     if (!rep.ok) throw new Error('HTTP ' + rep.status);
-    let donnees = await rep.json();
-    if (!Array.isArray(donnees)) donnees = [donnees];
+    let p = await rep.json();
+    if (Array.isArray(p)) p = p[0];
 
-    const p = donnees[0], cur = p.current || {}, day = p.daily || {};
+    const cur = p.current || {}, day = p.daily || {};
     const code = cur.weather_code, jour = cur.is_day === 1;
     meteoConstruireFond(meteoScene(code, jour));
     zoneMain.innerHTML = `
-      <div class="flex items-center gap-3 sm:gap-4">
-        <div class="shrink-0 meteo-icone-principale">${meteoIcone(code, jour, 58)}</div>
+      <div class="flex items-center gap-3">
+        <div class="shrink-0 meteo-icone-principale">${meteoIcone(code, jour, 44)}</div>
         <div class="min-w-0">
-          <div class="text-xs font-semibold meteo-sous">${meteoEsc(principale.nom)} · votre agence</div>
           <div class="flex items-baseline gap-2.5 flex-wrap">
             <span class="meteo-temp">${meteoArrondi(cur.temperature_2m)}°C</span>
             <span class="text-sm font-semibold meteo-titre">${meteoLibelle(code)}</span>
@@ -183,18 +183,6 @@ async function chargerMeteo() {
           </div>
         </div>
       </div>`;
-
-    zoneVilles.innerHTML = donnees.slice(1).map((d, i) => {
-      const c = d.current || {};
-      return `
-        <div class="meteo-ville" title="${meteoEsc(autres[i].nom)} : ${meteoLibelle(c.weather_code)}">
-          ${meteoIcone(c.weather_code, c.is_day === 1, 24)}
-          <div class="min-w-0">
-            <div class="meteo-ville-nom truncate">${meteoEsc(autres[i].nom)}</div>
-            <div class="meteo-ville-temp">${meteoArrondi(c.temperature_2m)}°C</div>
-          </div>
-        </div>`;
-    }).join('');
 
     const h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     if (maj) maj.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 align-middle"></span>Mis à jour à ${h}`;

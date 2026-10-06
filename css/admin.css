@@ -458,7 +458,9 @@ tr.total-row td { font-weight: 700; background: var(--brand-wash); }
   background: rgba(6, 26, 43, 0.45); z-index: 39;
 }
 
-@media (max-width: 900px) {
+/* Même point de rupture que les espaces expédition et retrait (1023 px) :
+   en dessous, menu escamotable avec « Changer d'espace ». */
+@media (max-width: 1023px) {
   .admin-sidebar { transform: translateX(-100%); }
   .admin-shell.sidebar-open .admin-sidebar { transform: translateX(0); }
   .admin-shell.sidebar-open .admin-sidebar-backdrop { display: block; }
@@ -668,3 +670,9 @@ table.admin-table td .etat-vide { white-space: normal; }
 .alerte-fermer { position: absolute; top: 6px; right: 10px; font-size: 1.4rem; line-height: 1; color: #64748b; background: none; border: 0; cursor: pointer; }
 .alerte-voir { margin-top: 8px; background: #f59e0b; color: #fff; font-weight: 600; border: 0; border-radius: 9px; padding: 6px 12px; cursor: pointer; }
 .alerte-voir:hover { background: #d97706; }
+
+/* ---------- Cloche : centre de notifications ---------- */
+.notif-section { font-weight: 700; font-size: .85rem; color: var(--ink, #0F2A44); margin: 14px 0 6px; }
+.notif-neuf { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700; background: #E5F1FB; color: #0C3F65; }
+.notif-vu { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 600; background: #EEF2F6; color: #6B7C8F; }
+tr.notif-ligne-vue td { opacity: .72; }

@@ -194,6 +194,7 @@ async function initDashboard() {
   subscribeRealtime();
   renderDashboardSections();
   rattraperCorrectionsManquees();
+  chargerCorrectionsRecentes();
 }
 
 async function loadSharedCache() {
@@ -302,9 +303,10 @@ function handleListingChange(payload) {
 
 const CLE_CORRECTIONS_VUES = 'coligo_admin_corrections_vues';
 
-function ouvrirColisDepuisAlerte(colisId) {
+function ouvrirColisDepuisAlerte(colisId, corrId) {
+  if (corrId != null) marquerNotifVue('corr:' + corrId);
   const c = colisCache.find(x => String(x.id) === String(colisId));
-  if (c) openColisModal(c);
+  if (c) openColisModal(c, ouvrirNotifications);
 }
 
 function afficherAlerteCorrection(m) {
@@ -332,7 +334,7 @@ function afficherAlerteCorrection(m) {
     ${lignes}
     <button type="button" class="alerte-voir">Voir le colis</button>`;
   el.querySelector('.alerte-fermer').addEventListener('click', () => el.remove());
-  el.querySelector('.alerte-voir').addEventListener('click', () => { ouvrirColisDepuisAlerte(m.colis_id); el.remove(); });
+  el.querySelector('.alerte-voir').addEventListener('click', () => { ouvrirColisDepuisAlerte(m.colis_id, m.id); el.remove(); });
   zone.appendChild(el);
 }
 
@@ -346,8 +348,10 @@ function memoriserCorrectionVue(m) {
 function handleCorrectionColis(payload) {
   const m = payload.new;
   if (!m) return;
+  ajouterCorrectionCache(m);
   afficherAlerteCorrection(m);
   memoriserCorrectionVue(m);
+  updateAlertBell();
   viewDirty.dashboard = true;
 }
 
@@ -363,7 +367,8 @@ async function rattraperCorrectionsManquees() {
     .select('*').gt('modifie_le', new Date(depuis).toISOString())
     .order('modifie_le', { ascending: true }).limit(10);
   if (error || !data) return;
-  data.forEach(m => { afficherAlerteCorrection(m); memoriserCorrectionVue(m); });
+  data.forEach(m => { ajouterCorrectionCache(m); afficherAlerteCorrection(m); memoriserCorrectionVue(m); });
+  updateAlertBell();
 }
 
 document.getElementById('btn-retry-realtime').addEventListener('click', () => {
@@ -373,23 +378,133 @@ document.getElementById('btn-retry-realtime').addEventListener('click', () => {
   setTimeout(() => clearBtnLoading(btn), 800);
 });
 
-// ---------- Cloche : uniquement l'alerte qui compte (colis en retard) ----------
-// Plus de journal d'activité générale : la cloche reflète en permanence le
-// nombre de colis en retard, et un clic ouvre directement la liste.
+// ---------- Cloche : centre de notifications ----------
+// Deux sources : les colis en retard et les corrections faites par les agents.
+// Consulter une notification en détail ne la retire JAMAIS de la liste : elle
+// est seulement marquée « Consulté » (mémorisé dans ce navigateur). Depuis le
+// détail d'un colis, « Retour aux notifications » ramène à la liste.
+
+const CLE_NOTIFS_VUES = 'coligo_admin_notifs_vues';
+let correctionsCache = []; // corrections récentes, la plus récente en premier
+
+function notifsVues() {
+  try { return new Set(JSON.parse(localStorage.getItem(CLE_NOTIFS_VUES) || '[]')); } catch (e) { return new Set(); }
+}
+function notifEstVue(cle) { return notifsVues().has(cle); }
+function marquerNotifVue(cle) {
+  try {
+    const v = notifsVues(); v.add(cle);
+    localStorage.setItem(CLE_NOTIFS_VUES, JSON.stringify(Array.from(v).slice(-500)));
+  } catch (e) { /* stockage indisponible : sans conséquence */ }
+  updateAlertBell();
+}
 
 function isLate(c) {
   return normalizeStatut(c.statut) !== 'Retiré' && daysSince(c.created_at) >= LATE_DAYS;
 }
 
+function ajouterCorrectionCache(m) {
+  if (!m || correctionsCache.some(x => String(x.id) === String(m.id))) return;
+  correctionsCache.push(m);
+  correctionsCache.sort((x, y) => new Date(y.modifie_le) - new Date(x.modifie_le));
+  correctionsCache = correctionsCache.slice(0, 50);
+}
+
+async function chargerCorrectionsRecentes() {
+  try {
+    const { data, error } = await supabaseClient.from('colis_modifications')
+      .select('*').order('modifie_le', { ascending: false }).limit(30);
+    if (!error && data) data.forEach(ajouterCorrectionCache);
+  } catch (e) { /* hors ligne : on garde ce qu'on a */ }
+  updateAlertBell();
+}
+
 function updateAlertBell() {
+  const vues = notifsVues();
   const retard = colisCache.filter(isLate).length;
+  const corrNonVues = correctionsCache.filter(m => !vues.has('corr:' + m.id)).length;
+  const total = retard + corrNonVues;
   const countEl = document.getElementById('notif-count');
-  if (retard > 0) { countEl.textContent = retard; countEl.classList.remove('hidden'); }
+  if (total > 0) { countEl.textContent = total; countEl.classList.remove('hidden'); }
   else { countEl.classList.add('hidden'); }
 }
 
+function ouvrirNotifications() {
+  const vues = notifsVues();
+  const retards = colisCache.filter(isLate);
+  const tag = (cle) => vues.has(cle) ? '<span class="notif-vu">Consulté</span>' : '<span class="notif-neuf">Nouveau</span>';
+  const resume = (m) => Object.keys(m.apres || {}).filter(k => k !== 'valeur')
+    .map(k => LIBELLES_CHAMPS_COLIS[k] || k).join(', ') || '—';
+
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <h3>Notifications</h3>
+    <div class="modal-sub">Cliquez sur une ligne pour le détail. Une notification consultée reste dans la liste.</div>
+
+    <div class="notif-section">Colis en retard — aucune mise à jour depuis plus de ${LATE_DAYS} jours (${retards.length})</div>
+    <div class="admin-table-wrap" style="margin-bottom:16px;"><table class="admin-table">
+      <thead><tr><th>Tracking</th><th>Destinataire</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        ${retards.length ? retards.map(c => `
+          <tr class="row-click ${vues.has('retard:' + c.id) ? 'notif-ligne-vue' : ''}" data-type="retard" data-id="${esc(String(c.id))}">
+            <td data-label="Tracking">${esc(c.numero_suivi)}</td>
+            <td data-label="Destinataire">${esc(c.destinataire_nom)}</td>
+            <td data-label="Statut">${statutBadge(c.statut)}</td>
+            <td data-label="Date">${formatDate(c.created_at)}</td>
+            <td data-label="">${tag('retard:' + c.id)}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="table-state">Aucun colis en retard.</td></tr>'}
+      </tbody>
+    </table></div>
+
+    <div class="notif-section">Colis modifiés par un agent (${correctionsCache.length})</div>
+    <div class="admin-table-wrap" style="margin-bottom:16px;"><table class="admin-table">
+      <thead><tr><th>Tracking</th><th>Agent</th><th>Champs modifiés</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        ${correctionsCache.length ? correctionsCache.map(m => `
+          <tr class="row-click ${vues.has('corr:' + m.id) ? 'notif-ligne-vue' : ''}" data-type="corr" data-id="${esc(String(m.id))}">
+            <td data-label="Tracking">${esc(m.numero_suivi) || '—'}</td>
+            <td data-label="Agent">${esc(m.agent)}</td>
+            <td data-label="Champs modifiés">${esc(resume(m))}</td>
+            <td data-label="Date">${formatDateTime(m.modifie_le)}</td>
+            <td data-label="">${tag('corr:' + m.id)}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="table-state">Aucune modification récente.</td></tr>'}
+      </tbody>
+    </table></div>
+    <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
+  `;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+  document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+  content.querySelectorAll('tr.row-click').forEach(row => {
+    row.addEventListener('click', async () => {
+      const id = row.dataset.id;
+      if (row.dataset.type === 'retard') {
+        const c = colisCache.find(x => String(x.id) === id);
+        marquerNotifVue('retard:' + id);
+        if (c) openColisModal(c, ouvrirNotifications);
+      } else {
+        const m = correctionsCache.find(x => String(x.id) === id);
+        if (!m) return;
+        marquerNotifVue('corr:' + id);
+        let c = colisCache.find(x => String(x.id) === String(m.colis_id));
+        if (!c) {
+          try {
+            const { data } = await supabaseClient.from('colis').select('*').eq('id', m.colis_id).maybeSingle();
+            c = data || null;
+          } catch (e) { c = null; }
+        }
+        if (c) openColisModal(c, ouvrirNotifications);
+      }
+    });
+  });
+}
+
 document.getElementById('notif-bell').addEventListener('click', () => {
-  openProblemListModal(`Colis en retard (aucune mise à jour depuis plus de ${LATE_DAYS} jours)`, colisCache.filter(isLate));
+  ouvrirNotifications();
+  chargerCorrectionsRecentes().then(() => {
+    // Rafraîchit la liste si elle est toujours à l'écran (nouvelles corrections reçues).
+    const ouvert = !document.getElementById('modal-backdrop').classList.contains('hidden');
+    if (ouvert && document.querySelector('#modal-content .notif-section')) ouvrirNotifications();
+  });
 });
 
 function handleColisChange(payload) {
@@ -556,7 +671,7 @@ function openProblemListModal(title, list) {
   content.querySelectorAll('tr.row-click').forEach(row => {
     row.addEventListener('click', () => {
       const c = colisCache.find(x => String(x.id) === row.dataset.id);
-      if (c) openColisModal(c);
+      if (c) { marquerNotifVue('retard:' + c.id); openColisModal(c, () => openProblemListModal(title, list)); }
     });
   });
 }
@@ -1021,7 +1136,7 @@ function deconnexionComplete() {
   localStorage.removeItem('coligo_admin_session');
   localStorage.removeItem('coligo_agent_session');
 
-  colisCache = []; histCache = []; agentsCache = []; listingsCache = new Map(); archiveCache = [];
+  colisCache = []; correctionsCache = []; histCache = []; agentsCache = []; listingsCache = new Map(); archiveCache = [];
   montantVisible = false; clearTimeout(minuteurMontant);
   if (typeof rap !== 'undefined') { if (rap.chart) rap.chart.destroy(); rap.chart = null; rap.lignes = null; rap.perime = true; rap.initialise = false; }
   Object.keys(viewLoaded).forEach(k => viewLoaded[k] = false);
@@ -1041,7 +1156,7 @@ document.getElementById('btn-logout-param').addEventListener('click', () => {
 
 // ---------- Modal lecture seule (détail d'un colis) ----------
 
-function openColisModal(c) {
+function openColisModal(c, retour) {
   const content = document.getElementById('modal-content');
   content.innerHTML = `
     <h3>${esc(c.numero_suivi)}</h3>
@@ -1062,10 +1177,12 @@ function openColisModal(c) {
       <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
     <div id="modal-corrections"></div>
+    ${retour ? '<button class="admin-btn admin-btn-block ghost" id="btn-retour-liste" style="margin-bottom:8px;">&larr; Retour à la liste</button>' : ''}
     <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
   `;
   document.getElementById('modal-backdrop').classList.remove('hidden');
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+  if (retour) document.getElementById('btn-retour-liste').addEventListener('click', retour);
   afficherCorrectionsColis(c);
 }
 
