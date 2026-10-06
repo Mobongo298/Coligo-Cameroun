@@ -50,23 +50,23 @@
      translucide (la photo se devine à travers) mais assez dense pour que le texte
      blanc reste toujours lisible, quelle que soit la zone de la photo derrière. */
   .client-page .photo-plate {
-    background: rgba(12, 63, 101, 0.52);
+    background: rgba(12, 63, 101, 0.30);
     -webkit-backdrop-filter: blur(5px) saturate(1.25);
     backdrop-filter: blur(5px) saturate(1.25);
-    border: 1px solid rgba(255, 255, 255, 0.38);
-    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 6px 20px -10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   }
-  .client-page section.photo-plate { padding: 24px 20px; width: 100%; }
+  .client-page section.photo-plate { padding: 16px 18px; width: min(100%, 680px); margin-left: auto; margin-right: auto; }
   /* Pas d'ombre portée autour de la colonne centrale : elle dessinait un halo rectangulaire sur la photo. */
   body.client-page main { box-shadow: none; }
   /* Carte de recherche : même verre translucide que les bandes de texte.
      Le champ de saisie reste presque opaque pour que ce que l'on tape soit toujours lisible. */
   .client-page .search-glass {
-    background: rgba(12, 63, 101, 0.52);
+    background: rgba(12, 63, 101, 0.30);
     -webkit-backdrop-filter: blur(5px) saturate(1.25);
     backdrop-filter: blur(5px) saturate(1.25);
-    border: 1px solid rgba(255, 255, 255, 0.38);
-    box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 6px 20px -10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   }
   .client-page .search-glass label { color: #ffffff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); font-weight: 600; }
   .client-page .search-glass input {
@@ -81,6 +81,16 @@
   .client-page .on-photo-sub { color: rgba(255, 255, 255, 0.95); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
   .client-page .brand-name { color: #ffffff; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
   .client-page .brand-sub { color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
+
+  /* Cartes d'accueil compactes : plus de transparence et moins d'encombrement. */
+  .client-page main { max-width: 42rem; }
+  .client-page section.photo-plate { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+  .client-page section.photo-plate h1 { font-size: clamp(1.8rem, 4vw, 2.75rem); margin-bottom: .65rem; }
+  .client-page section.photo-plate p { font-size: .95rem; line-height: 1.45; }
+  .client-page .search-glass { width: min(100%, 680px); margin-left: auto; margin-right: auto; padding: 1rem 1.15rem; }
+  .client-page .search-glass input { padding-top: .7rem; padding-bottom: .7rem; }
+  .client-page .search-glass button { padding: .7rem 1.4rem; }
+  .client-page > main > p.photo-plate { padding: .55rem .85rem; margin-top: 1.5rem; }
 
   /* Le client ne peut pas imprimer le reçu : l'impression du navigateur
      (menu Fichier > Imprimer) ne produit qu'une page d'avertissement. */
