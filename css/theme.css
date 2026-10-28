@@ -1233,3 +1233,50 @@ button[aria-label="Ouvrir le menu"] {
 .meteo-temp { font-size: 1.55rem !important; }
 .meteo-icone-principale svg { width: 44px; height: 44px; }
 .meteo-villes { display: none !important; }
+
+/* ==========================================================
+   11. Menus de l'espace Administratif : même couleur que l'espace agent
+   ----------------------------------------------------------
+   Dans l'espace agent, les entrées du rail sont des <button>, donc elles
+   prennent le vert des actions (section 10). Dans l'administration ce sont
+   des <div> / <a> : ils restaient bleu-gris. On leur donne ici exactement
+   le même rendu (vert, texte blanc, coins arrondis, écart de 4 px).
+   ========================================================== */
+body .admin-sidebar .admin-nav-item {
+  background-color: var(--action-green) !important;
+  color: #FFFFFF !important;
+  border-left: 0;
+  border-radius: 9px;
+  margin-bottom: 4px;
+  position: relative;
+  text-decoration: none;
+}
+body .admin-sidebar .admin-nav-item:hover {
+  background-color: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+}
+body .admin-sidebar .admin-nav-item:active { background-color: #045B2A !important; }
+
+/* Page affichée : vert plus profond + repère bleu à gauche (comme .rail-item.is-active) */
+body .admin-sidebar .admin-nav-item.active {
+  background-color: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+body .admin-sidebar .admin-nav-item.active::before {
+  content: ''; position: absolute; left: -13px; top: 9px; bottom: 9px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--brand-bright);
+}
+
+/* Déconnexion : même séparation que dans l'espace agent, mais restée verte */
+body .admin-sidebar .admin-nav-logout {
+  margin-top: 16px;
+  border-top: 0;
+  border-radius: 9px;
+  padding-top: 11px;
+}
+body .admin-sidebar .admin-nav-logout:hover {
+  background-color: var(--action-green-hover) !important;
+  color: #FFFFFF !important;
+}
+@media (max-width: 640px) { .admin-nav-item { min-height: 44px; } }

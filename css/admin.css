@@ -676,3 +676,8 @@ table.admin-table td .etat-vide { white-space: normal; }
 .notif-neuf { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700; background: #E5F1FB; color: #0C3F65; }
 .notif-vu { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 600; background: #EEF2F6; color: #6B7C8F; }
 tr.notif-ligne-vue td { opacity: .72; }
+
+/* ---------- Fenêtre large : détail d'une notification avec le reçu ---------- */
+.admin-modal.admin-modal-large { max-width: 780px; }
+.modal-recu-titre { font-weight: 700; font-size: .92rem; color: var(--brand-deep); margin: 4px 0 8px; }
+.modal-recu-zone { margin-bottom: 16px; border-radius: 10px; overflow: hidden; background: #f8fafc; }
