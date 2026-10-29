@@ -106,12 +106,10 @@ function abonnerTempsReel(colisId) {
       const pill = document.getElementById('realtime-pill');
       if (!pill) return;
       if (status === 'SUBSCRIBED') {
-        pill.classList.remove('text-slate-400');
-        pill.classList.add('text-coligo');
-        pill.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-coligo animate-pulse"></span> Mise à jour en direct active';
+        pill.style.color = '#07823B';
+        pill.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style="background:#07823B"></span> Mise à jour en direct active';
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        pill.classList.remove('text-coligo');
-        pill.classList.add('text-slate-400');
+        pill.style.color = '#8a9a92';
         pill.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400"></span> Mise à jour en direct interrompue';
       }
     });
@@ -123,7 +121,7 @@ function estStatutRetire(statut) {
   return normalizeStatut(statut) === 'Retiré';
 }
 
-const CARTE_CLASSES = 'bg-white rounded-2xl border border-slate-200 shadow-[0_2px_4px_rgba(12,63,101,0.06),0_8px_20px_-12px_rgba(12,63,101,0.22)] p-5 lg:p-6';
+const CARTE_CLASSES = 'suivi-card';
 
 async function afficherResultat(c) {
   const resultZone = document.getElementById('result-zone');
@@ -135,46 +133,59 @@ async function afficherResultat(c) {
   }
 
   resultZone.innerHTML = `
-    <div id="statut-card" class="${CARTE_CLASSES} mb-5"></div>
-    <div id="alerte-groupe-zone" class="mb-5"></div>
-    <div class="${CARTE_CLASSES}">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <h2 class="font-semibold">Votre reçu</h2>
-        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-3 py-1">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+    <div id="statut-card" class="${CARTE_CLASSES}"></div>
+    <div id="alerte-groupe-zone" style="margin-top:16px;"></div>
+    <div class="${CARTE_CLASSES}" style="margin-top:16px;">
+      <div class="recu-head">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
+          Votre reçu
+        </h3>
+        <span class="recu-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
           Consultation uniquement
         </span>
       </div>
-      <p class="text-xs text-slate-500 mb-4">Ce reçu est affiché pour vérification et ne peut pas être imprimé.
+      <p class="recu-note">Ce reçu est affiché pour vérification et ne peut pas être imprimé.
         Le reçu officiel est celui qui vous a été remis au guichet lors de l'envoi.</p>
-      <div class="overflow-x-auto">
-        <div id="recu-preview" class="flex flex-wrap gap-4 justify-center select-none"></div>
-      </div>
+      <div class="recu-table"><div id="recu-preview" class="select-none"></div></div>
     </div>
   `;
 
   renderStatutCard(c);
 
-  // Aperçu isolé dans une iframe (style 80 mm), avec
-  // impression neutralisée à l'intérieur de l'iframe elle-même.
+  // Aperçu isolé dans une iframe (style 80 mm). Les deux exemplaires (client, agence)
+  // sont posés côte à côte ; ils passent l'un sous l'autre seulement si la place manque.
+  // La hauteur de l'iframe s'ajuste au contenu : aucune barre de défilement interne.
   const preview = document.getElementById('recu-preview');
   const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'width:100%; max-width:720px; height:1180px; border:0;';
+  iframe.style.cssText = 'width:100%; height:760px; border:0; display:block;';
+  iframe.setAttribute('scrolling', 'no');
   iframe.setAttribute('title', 'Reçu (consultation uniquement)');
   preview.appendChild(iframe);
   const doc = iframe.contentDocument;
   doc.open();
   doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
-    body { background:#f8fafc; padding:10px 0; -webkit-user-select:none; user-select:none; }
-    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); }
-    @media (min-width: 700px) {
-      body { display:flex; gap:14px; justify-content:center; align-items:flex-start; }
-    }
-    @media print { html, body { display:none !important; } }
+    html, body { overflow: hidden; }
+    body { background: transparent; margin: 0; padding: 22px 12px 18px; -webkit-user-select: none; user-select: none;
+           display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; align-items: flex-start; }
+    .recu { margin: 0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 14px 30px -12px rgba(6,50,30,.35); }
+    @media (min-width: 760px) { .recu { zoom: 1.12; } }
+    @media print { html, body { display: none !important; } }
     </style></head><body oncontextmenu="return false">${recuCompletHtml(c)}</body></html>`);
   doc.close();
   // Raccourci Ctrl+P / Cmd+P bloqué aussi quand le focus est dans l'iframe.
   try { doc.addEventListener('keydown', bloquerRaccourciImpression, true); } catch (e) { /* silencieux */ }
+
+  const ajuster = () => {
+    try {
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+      if (h) iframe.style.height = Math.ceil(h) + 'px';
+    } catch (e) { /* silencieux */ }
+  };
+  [60, 250, 700, 1500].forEach(t => setTimeout(ajuster, t));
+  try { iframe.contentWindow.addEventListener('resize', ajuster); } catch (e) { /* silencieux */ }
+  try { doc.querySelectorAll('img').forEach(im => im.addEventListener('load', ajuster)); } catch (e) { /* silencieux */ }
 
   document.getElementById('suivi-modal-corps').scrollTop = 0;
 }
@@ -184,9 +195,9 @@ async function afficherResultat(c) {
 async function afficherRetrait(c) {
   const resultZone = document.getElementById('result-zone');
   resultZone.innerHTML = `
-    <div id="statut-card" class="${CARTE_CLASSES} mb-5"></div>
+    <div id="statut-card" class="${CARTE_CLASSES}"></div>
     <div id="alerte-groupe-zone"></div>
-    <div id="retrait-card" class="${CARTE_CLASSES}">
+    <div id="retrait-card" class="${CARTE_CLASSES}" style="margin-top:16px;">
       <div class="text-center text-slate-500 text-sm py-4">Chargement des informations du retrait…</div>
     </div>`;
   renderStatutCard(c);
@@ -280,26 +291,43 @@ function renderStatutCard(c) {
   const st = normalizeStatut(c.statut);
   const col = statutColors(st);
   const etapes = ['Enregistré', 'En transit', 'Disponible', 'Retiré'];
-  const idx = etapes.indexOf(st);
-  const pct = ((idx + 1) / etapes.length) * 100;
+  const idx = Math.max(0, etapes.indexOf(st));
+  const pct = (idx / (etapes.length - 1)) * 100;
+  const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const icones = {
+    'Enregistré': svg('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
+    'En transit': svg('<path d="M1 6h13v10H1zM14 9h4l4 4v3h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>'),
+    'Disponible': svg('<path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/><path d="M3 8.5 12 14l9-5.5M12 14v7"/>'),
+    'Retiré':     svg('<polyline points="20 6 9 17 4 12"/>')
+  };
+  const coche = svg('<polyline points="20 6 9 17 4 12"/>');
+  const trajet = (c.ville_depart && c.ville_arrivee)
+    ? `<div class="trajet">${escR(String(c.ville_depart).toUpperCase())}<span>→</span>${escR(String(c.ville_arrivee).toUpperCase())}</div>` : '';
 
   card.innerHTML = `
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div class="text-xs text-slate-500">Statut actuel de votre colis</div>
-        <div class="text-2xl font-bold mt-0.5" style="color:${col.text}">${escR(st)}</div>
-        <div id="realtime-pill" class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-          <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-300"></span> Connexion au suivi en direct…
+    <div class="st-top">
+      <div class="st-id">
+        <div class="st-ico" style="background:${col.bg}; color:${col.text}">${icones[st]}</div>
+        <div>
+          <div class="st-lib">Statut actuel de votre colis</div>
+          <div class="st-val" style="color:${col.text}">${escR(st)}</div>
+          <div id="realtime-pill" class="st-live">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-300"></span> Connexion au suivi en direct…
+          </div>
         </div>
       </div>
-      <span class="px-4 py-2 rounded-full text-sm font-semibold"
-            style="background:${col.bg}; color:${col.text}">${escR(c.numero_suivi)}</span>
+      <div class="st-num">
+        <span class="chip" style="background:${col.bg}; color:${col.text}">${escR(c.numero_suivi)}</span>
+        ${trajet}
+      </div>
     </div>
-    <div class="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
-      <div class="h-full rounded-full transition-all" style="width:${pct}%; background:${col.solid}"></div>
-    </div>
-    <div class="flex justify-between text-[11px] text-slate-500 mt-1.5">
-      ${etapes.map(e => `<span>${e}</span>`).join('')}
+    <div class="st-steps" style="--ring:${col.bg}">
+      <div class="st-track"><div class="st-fill" style="width:${pct}%; background:${col.solid}"></div></div>
+      ${etapes.map((e, i) => `
+        <div class="st-step ${i < idx ? 'done' : (i === idx ? 'now' : '')}">
+          <div class="st-dot" style="${i <= idx ? `background:${col.solid}` : ''}">${i < idx ? coche : (i === idx ? icones[e] : i + 1)}</div>
+          <div class="st-name">${e}</div>
+        </div>`).join('')}
     </div>
   `;
 
@@ -310,8 +338,8 @@ function renderStatutCard(c) {
   if (alerteZone) {
     if (st === 'Disponible' && estColisGroupe(c.Description_du_colis)) {
       alerteZone.innerHTML = `
-        <div class="bg-coligo-light border border-coligo/30 rounded-2xl px-5 py-4 text-sm text-coligo-dark flex gap-3">
-          <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="st-alerte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           <p>
             En cas de disponibilité incomplète de l'ensemble de vos colis, pas d'inquiétude :
             le reste vous parviendra d'ici <strong>2 jours maximum</strong>.
