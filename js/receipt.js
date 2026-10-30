@@ -438,6 +438,35 @@ const RECU_CSS = `
 `;
 
 // Reçu complet = 2 exemplaires imprimés à la suite (client, puis agence).
+
+// ----------------------------------------------------------
+// Ajuste l'iframe d'aperçu des reçus : les 2 exemplaires sont réduits pour tenir
+// dans la hauteur disponible (maxH, en px ou fonction ; 0 = pas de limite).
+// Sur écran étroit (téléphone), aucune réduction : le défilement reste normal.
+// ----------------------------------------------------------
+function recuAjusterIframe(iframe, maxH, zoomMin) {
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc || !doc.body) return;
+    const recus = doc.querySelectorAll('.recu');
+    if (!recus.length) return;
+    doc.body.style.zoom = '';
+    const naturel = Math.ceil(Math.max(...Array.from(recus).map(r => r.getBoundingClientRect().bottom)) + 16);
+    const limite = (typeof maxH === 'function' ? maxH() : maxH) || 0;
+    let z = 1;
+    if (limite > 0 && window.innerWidth >= 900 && naturel > limite) z = Math.max(zoomMin || 0.45, limite / naturel);
+    doc.body.style.zoom = z === 1 ? '' : String(z);
+    iframe.style.height = Math.ceil(naturel * z) + 'px';
+  } catch (e) { /* silencieux */ }
+}
+function recuSurveillerIframe(iframe, maxH, zoomMin) {
+  const f = () => recuAjusterIframe(iframe, maxH, zoomMin);
+  [60, 250, 600, 1200].forEach(t => setTimeout(f, t));
+  try { iframe.contentWindow.addEventListener('resize', f); } catch (e) { /* silencieux */ }
+  window.addEventListener('resize', f);
+  try { iframe.contentDocument.querySelectorAll('img').forEach(im => im.addEventListener('load', f)); } catch (e) { /* silencieux */ }
+}
+
 function recuCompletHtml(c) {
   return recuExemplaireHtml(c, 'Exemplaire client') + recuExemplaireHtml(c, 'Exemplaire agence');
 }

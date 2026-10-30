@@ -6,13 +6,11 @@
 (function () {
   const ZOOM_MIN = 0.7;      // plus petit facteur de réduction accepté
   const LARGEUR_MIN = 700;   // en dessous : mobile, pas de réduction
-  const MARGE = 0.97;        // part de la hauteur d'écran utilisable
+  const MARGE = 0.95;        // part de la hauteur d'écran utilisable
 
   // [fenêtre, zones défilantes internes]
   const CIBLES = [
     ['#modal-backdrop > #modal-content', []],
-    ['#recu-modal > div', ['#recu-modal-corps']],
-    ['#suivi-modal .suivi-dialog', ['#suivi-modal-corps']],
     ['#ld-fond .ld-boite', ['.ld-corps']]
   ];
 
@@ -21,6 +19,8 @@
   }
 
   function ajuster(boite, zones) {
+    // Les fenêtres à reçu (2 colonnes) gèrent déjà leur hauteur elles-mêmes.
+    if (boite.classList.contains('admin-modal-large')) return;
     boite.style.zoom = '';
     boite.style.maxHeight = '';
     if (window.innerWidth < LARGEUR_MIN || !visible(boite)) return;

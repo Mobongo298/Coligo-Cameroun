@@ -176,6 +176,34 @@
   .st-alerte { background: #EAF4EE; border: 1px solid #BFDCCB; color: #14532D; border-radius: 16px; padding: 14px 18px; font-size: .88rem; display: flex; gap: 12px; }
   .st-alerte svg { width: 20px; height: 20px; flex: none; color: #07823B; margin-top: 1px; }
 
+
+  /* ==========================================================
+     Grand écran : statut à gauche, reçus à droite — aucune barre de défilement.
+     ========================================================== */
+  @media (min-width: 900px) {
+    #suivi-modal { padding: 8px !important; }
+    #suivi-modal .suivi-dialog { max-width: 1240px; height: 97vh; max-height: 97vh; }
+    #suivi-modal .suivi-head { padding: 8px 20px; }
+    #suivi-modal .suivi-foot { padding: 6px 20px; }
+    #suivi-modal-corps { padding: 10px 16px; flex: 1 1 0; min-height: 0; }
+    #suivi-modal-corps:has(#recu-preview) { overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    #suivi-modal-corps:has(#recu-preview) #modal-info:empty { display: none; }
+    #result-zone:has(#recu-preview) {
+      flex: 1; min-height: 0; display: grid; gap: 12px;
+      grid-template-columns: minmax(330px, 420px) minmax(0, 1fr); grid-template-rows: auto 1fr; align-content: start;
+    }
+    #result-zone:has(#recu-preview) #statut-card { grid-column: 1; grid-row: 1; padding: 16px 18px; }
+    #result-zone:has(#recu-preview) #alerte-groupe-zone { grid-column: 1; grid-row: 2; margin-top: 0 !important; align-self: start; }
+    #result-zone:has(#recu-preview) .suivi-card:last-child {
+      grid-column: 2; grid-row: 1 / span 2; margin-top: 0 !important; padding: 14px 16px;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    #result-zone:has(#recu-preview) .recu-note { margin-bottom: 8px; font-size: .74rem; }
+    #result-zone:has(#recu-preview) .recu-table { flex: 1 1 0; min-height: 0; }
+    #result-zone:has(#recu-preview) .st-val { font-size: 1.5rem; }
+    #result-zone:has(#recu-preview) .st-ico { width: 44px; height: 44px; }
+  }
+
   .print-only { display: none; }
   @media print {
     body > *:not(.print-only) { display: none !important; }

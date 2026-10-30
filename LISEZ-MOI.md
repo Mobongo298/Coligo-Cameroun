@@ -387,10 +387,30 @@ Tout doit rester servi en **HTTPS** (Netlify le fait déjà par défaut) — une
 
 ## Mise à jour — fenêtres sans défilement et suppression à 7 jours
 
-- **Fenêtres** (détail colis, reçu, listing, suivi client, modification) : plus larges, informations
-  en colonnes et marges resserrées pour tout voir d'un coup d'œil sur ordinateur/tablette. Si une
-  fenêtre dépasse encore la hauteur de l'écran, `js/fit-fenetres.js` la réduit légèrement (jusqu'à
-  70 % maximum). Sur téléphone, le défilement reste normal.
+- **Fenêtres** (écrans ≥ 900 px) : tout est visible d'un coup, sans descendre.
+  - Admin (détail d'un colis) : informations à gauche, reçus à droite.
+  - Suivi client : statut à gauche, reçus à droite.
+  - Retrait : reçus ajustés à la hauteur de la fenêtre.
+  - Espace agent : le détail d'un colis libère la place du titre ; la fenêtre de modification passe en 3 colonnes.
+  - Les deux exemplaires du reçu sont réduits automatiquement pour tenir dans la hauteur de l'écran
+    (`recuAjusterIframe` dans `js/receipt.js`). `js/fit-fenetres.js` réduit légèrement les autres fenêtres
+    si besoin. Sur téléphone, le défilement reste normal.
 - **Comptes agents désactivés** : suppression définitive après **7 jours** (au lieu de 30).
   Réexécutez dans Supabase (SQL Editor) : `sql/agents_desactivation_modification_migration.sql`,
   puis `sql/annulation_conservation_donnees.sql`, pour appliquer le nouveau délai côté base.
+- Après mise en ligne, faites **Ctrl + F5** une fois : l'app garde ses fichiers en cache (`sw.js`, version v22).
+
+## Réparation — « Mot de passe oublié » (code par e-mail)
+
+Plusieurs fichiers SQL redéfinissent la même fonction `request_password_reset` ; le dernier lancé
+gagne. Relancer un ancien fichier (ou lancer `email_reset_fix.sql` sans enregistrer le relais Google
+alors qu'une clé Resend existait) coupait l'envoi sans erreur visible.
+
+1. **SQL Editor > New query** : collez `sql/mot_de_passe_oublie_reparation.sql` > **Run**.
+   Il réinstalle la bonne version des fonctions et choisit automatiquement le fournisseur réellement
+   configuré (relais Google, sinon Resend). Il ne touche ni aux comptes ni à vos réglages.
+2. Testez : `select test_envoi_email('votre.adresse@gmail.com');` → doit renvoyer `"ok": true`.
+3. En cas d'échec, la cause exacte est dans : `select * from email_log order by id desc limit 5;`
+   (les remèdes courants sont listés en bas du fichier SQL).
+4. **Ne relancez plus** `reset_password_migration.sql` ni `messagerie_codes_suivi_migration.sql` après
+   cette réparation : ils remettent l'ancienne version. Si cela arrive, relancez simplement la réparation.

@@ -1284,24 +1284,34 @@ body .admin-sidebar .admin-nav-logout:hover {
 /* ==========================================================
    Fenêtres : tout l'essentiel visible d'un coup, sans descendre
    (écrans ≥ 900 px — sur téléphone le défilement reste normal).
-   js/fit-fenetres.js réduit très légèrement le contenu si besoin.
    ========================================================== */
 @media (min-width: 900px) {
-  /* Fenêtre « détail » : large, informations en 4 colonnes */
-  body .admin-modal:has(.modal-grid) { max-width: min(1100px, 96vw); padding: 18px 24px; max-height: 96vh; }
-  body .admin-modal.admin-modal-large { max-width: min(1200px, 96vw); }
-  body .admin-modal h3 { font-size: 1.1rem; }
-  body .admin-modal .modal-sub { margin-bottom: 10px; }
-  body .admin-modal .modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 16px; margin-bottom: 10px; }
-  body .admin-modal .modal-grid .full { grid-column: 1 / -1; }
-  body .admin-modal .modal-recu-titre { margin: 2px 0 6px; }
-  body .admin-modal .modal-recu-zone { margin-bottom: 10px; }
-  body .admin-modal .admin-btn-block { width: auto; display: inline-flex; min-width: 160px; margin-bottom: 0 !important; }
-  body .admin-modal #btn-retour-liste { margin-right: 8px; }
+  body .admin-modal-backdrop { padding: 8px; }
 
-  /* Autres fenêtres : mêmes marges resserrées */
-  body [role="dialog"], body .modal-box, body .modal-card { max-height: 96vh; }
-  body .admin-modal-backdrop { padding: 10px; }
+  /* Détail simple (sans reçu) : large, informations en 4 colonnes */
+  body .admin-modal:has(.modal-grid):not(.admin-modal-large) { max-width: min(1100px, 97vw); padding: 16px 22px; max-height: 97vh; }
+  body .admin-modal:not(.admin-modal-large) .modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 16px; margin-bottom: 10px; }
+  body .admin-modal .modal-sub { margin-bottom: 10px; }
+
+  /* Détail avec reçu : informations à gauche, reçus à droite, hauteur = écran */
+  body .admin-modal.admin-modal-large {
+    max-width: min(1240px, 97vw); width: 97vw; height: 97vh; max-height: 97vh;
+    padding: 14px 18px; overflow: hidden; display: flex; flex-direction: column;
+  }
+  body .admin-modal.admin-modal-large .modal-split {
+    display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; flex: 1; min-height: 0;
+  }
+  body .admin-modal.admin-modal-large .modal-left { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding-right: 4px; }
+  body .admin-modal.admin-modal-large .modal-left h3 { font-size: 1.1rem; }
+  body .admin-modal.admin-modal-large .modal-sub { font-size: .76rem; margin-bottom: 8px; }
+  body .admin-modal.admin-modal-large .modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin-bottom: 8px; }
+  body .admin-modal.admin-modal-large .modal-grid .k { font-size: .7rem; }
+  body .admin-modal.admin-modal-large .modal-grid .v { font-size: .86rem; margin-top: 0; word-break: break-word; }
+  body .admin-modal.admin-modal-large .modal-left .admin-btn-block { margin-top: 6px; }
+  body .admin-modal.admin-modal-large #btn-close-modal { margin-top: auto; }
+  body .admin-modal.admin-modal-large .modal-right { min-height: 0; display: flex; flex-direction: column; }
+  body .admin-modal.admin-modal-large .modal-recu-titre { margin: 2px 0 6px; }
+  body .admin-modal.admin-modal-large .modal-recu-zone { flex: 1 1 0; min-height: 0; margin: 0; overflow: hidden; }
 }
 @media (max-width: 899px) {
   body .admin-modal .modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

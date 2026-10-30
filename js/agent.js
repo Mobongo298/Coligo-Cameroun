@@ -631,7 +631,7 @@ async function voirColis(id, bandeau) {
 
   const detail = document.getElementById('suivi-detail');
   detail.innerHTML = `
-    <div class="flex flex-wrap items-center gap-3 mb-4">
+    <div class="detail-top flex flex-wrap items-center gap-3 mb-4">
       <button type="button" onclick="fermerDetailColis()" class="inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
         Fermer
@@ -639,9 +639,10 @@ async function voirColis(id, bandeau) {
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div class="detail-entete flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 class="font-semibold">Reçu du colis ${esc(c.numero_suivi)}</h2>
         <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="fermerDetailColis()" class="detail-fermer-haut bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">Fermer</button>
           ${modifiable ? `<button type="button" id="btn-modifier-detail" class="inline-flex items-center gap-2 bg-white border border-coligo text-coligo hover:bg-coligo-light font-semibold px-4 py-2.5 rounded-xl transition">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
             Modifier les informations d'enregistrement</button>` : ''}
@@ -653,7 +654,7 @@ async function voirColis(id, bandeau) {
       ${bandeau ? `<div class="mb-4">${bandeau}</div>` : ''}
       ${note ? `<p class="text-xs text-slate-500 mb-4">${esc(note)}</p>` : ''}
       <div id="detail-recu" class="overflow-x-auto"></div>
-      <div class="flex justify-end mt-4">
+      <div class="detail-bas flex justify-end mt-4">
         <button type="button" onclick="fermerDetailColis()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-xl transition">Fermer</button>
       </div>
     </div>
@@ -672,17 +673,12 @@ async function voirColis(id, bandeau) {
   doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
     body { background:#f8fafc; padding:12px 0; margin:0; }
     .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
-    @media (min-width: 700px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
+    @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  const ajuster = () => {
-    try {
-      const bas = Math.max(0, ...Array.from(doc.querySelectorAll('.recu')).map(r => r.getBoundingClientRect().bottom));
-      if (bas) iframe.style.height = Math.ceil(bas + 16) + 'px';
-    } catch (e) { /* silencieux */ }
-  };
-  setTimeout(ajuster, 60); setTimeout(ajuster, 400);
-  iframe.contentWindow.addEventListener('resize', ajuster);
+  // Sur grand écran, les 2 reçus sont réduits pour tenir dans la hauteur visible : pas de défilement.
+  const zoneRecu = document.getElementById('detail-recu');
+  recuSurveillerIframe(iframe, () => window.innerHeight - (zoneRecu.getBoundingClientRect().top + window.scrollY) - 28);
 
   detailOuvert = { id: c.id, statut: st };
   liste.classList.add('hidden');

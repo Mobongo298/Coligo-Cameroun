@@ -1181,6 +1181,7 @@ function openColisModal(c, retour, opts) {
   const content = document.getElementById('modal-content');
   content.classList.toggle('admin-modal-large', !!opts.recu);
   content.innerHTML = `
+    ${opts.recu ? '<div class="modal-split"><div class="modal-left">' : ''}
     <h3>${esc(c.numero_suivi)}</h3>
     <div class="modal-sub">Consultation uniquement — l'agent ne peut corriger un colis qu'une seule fois, tant qu'il est « Enregistré ».</div>
     <div class="modal-grid">
@@ -1199,9 +1200,9 @@ function openColisModal(c, retour, opts) {
       <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
     </div>
     <div id="modal-corrections"></div>
-    ${opts.recu ? `<div class="modal-recu-titre">Reçu du colis ${esc(c.numero_suivi)}</div><div id="modal-recu" class="modal-recu-zone"></div>` : ''}
     ${retour ? `<button class="admin-btn admin-btn-block ghost" id="btn-retour-liste" style="margin-bottom:8px;">&larr; ${opts.notifCle ? 'Retour aux notifications' : 'Retour à la liste'}</button>` : ''}
     <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
+    ${opts.recu ? `</div><div class="modal-right"><div class="modal-recu-titre">Reçu du colis ${esc(c.numero_suivi)}</div><div id="modal-recu" class="modal-recu-zone"></div></div></div>` : ''}
   `;
   document.getElementById('modal-backdrop').classList.remove('hidden');
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
@@ -1223,17 +1224,11 @@ function afficherRecuDansModal(c) {
   doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
     body { background:#f8fafc; padding:12px 0; margin:0; }
     .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
-    @media (min-width: 700px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
+    @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  const ajuster = () => {
-    try {
-      const bas = Math.max(0, ...Array.from(doc.querySelectorAll('.recu')).map(r => r.getBoundingClientRect().bottom));
-      if (bas) iframe.style.height = Math.ceil(bas + 16) + 'px';
-    } catch (e) { /* silencieux */ }
-  };
-  setTimeout(ajuster, 60); setTimeout(ajuster, 400);
-  try { iframe.contentWindow.addEventListener('resize', ajuster); } catch (e) { /* ignore */ }
+  // Les 2 reçus sont réduits pour tenir dans la hauteur de la zone : pas de défilement.
+  recuSurveillerIframe(iframe, () => zone.clientHeight - 4);
 }
 
 // Corrections faites par l'agent après l'enregistrement (table colis_modifications).

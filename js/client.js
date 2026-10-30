@@ -170,22 +170,15 @@ async function afficherResultat(c) {
     body { background: transparent; margin: 0; padding: 22px 12px 18px; -webkit-user-select: none; user-select: none;
            display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; align-items: flex-start; }
     .recu { margin: 0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 14px 30px -12px rgba(6,50,30,.35); }
-    @media (min-width: 760px) { .recu { zoom: 1.12; } }
+    @media (min-width: 760px) and (max-width: 899px) { .recu { zoom: 1.12; } }
     @media print { html, body { display: none !important; } }
     </style></head><body oncontextmenu="return false">${recuCompletHtml(c)}</body></html>`);
   doc.close();
   // Raccourci Ctrl+P / Cmd+P bloqué aussi quand le focus est dans l'iframe.
   try { doc.addEventListener('keydown', bloquerRaccourciImpression, true); } catch (e) { /* silencieux */ }
 
-  const ajuster = () => {
-    try {
-      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
-      if (h) iframe.style.height = Math.ceil(h) + 'px';
-    } catch (e) { /* silencieux */ }
-  };
-  [60, 250, 700, 1500].forEach(t => setTimeout(ajuster, t));
-  try { iframe.contentWindow.addEventListener('resize', ajuster); } catch (e) { /* silencieux */ }
-  try { doc.querySelectorAll('img').forEach(im => im.addEventListener('load', ajuster)); } catch (e) { /* silencieux */ }
+  // Les 2 exemplaires sont réduits pour tenir dans la zone (grand écran) : aucun défilement.
+  recuSurveillerIframe(iframe, () => preview.parentElement.clientHeight - 4);
 
   document.getElementById('suivi-modal-corps').scrollTop = 0;
 }

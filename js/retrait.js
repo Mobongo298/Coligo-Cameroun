@@ -244,17 +244,11 @@ function ouvrirRecuModal(c) {
   doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
     body { background:#f8fafc; padding:12px 0; margin:0; }
     .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
-    @media (min-width: 700px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
+    @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  const ajuster = () => {
-    try {
-      const bas = Math.max(0, ...Array.from(doc.querySelectorAll('.recu')).map(r => r.getBoundingClientRect().bottom));
-      if (bas) iframe.style.height = Math.ceil(bas + 16) + 'px';
-    } catch (e) { /* silencieux */ }
-  };
-  setTimeout(ajuster, 60); setTimeout(ajuster, 400);
-  iframe.contentWindow.addEventListener('resize', ajuster);
+  // Les 2 reçus sont réduits pour tenir dans la fenêtre (grand écran) : pas de défilement.
+  recuSurveillerIframe(iframe, () => corps.clientHeight - 24);
 }
 
 async function rechercherColisDashboard() {
