@@ -43,7 +43,9 @@
     body:has(#suivi-detail:not(.hidden)) main { padding-top: 12px !important; padding-bottom: 12px !important; }
     #suivi-detail > div.bg-white { padding: 12px 16px; }
     #suivi-detail .detail-entete { margin-bottom: 8px; }
-    #detail-recu { overflow: hidden; }
+    #detail-recu { overflow-x: hidden; }
+    /* Reçus agrandis : on libère la largeur de la page pendant l'affichage du détail */
+    body:has(#suivi-detail:not(.hidden)) main { max-width: none !important; }
   }
   .view { display: none; }
   .view.active { display: block; }

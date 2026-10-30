@@ -1289,29 +1289,32 @@ body .admin-sidebar .admin-nav-logout:hover {
   body .admin-modal-backdrop { padding: 8px; }
 
   /* Détail simple (sans reçu) : large, informations en 4 colonnes */
-  body .admin-modal:has(.modal-grid):not(.admin-modal-large) { max-width: min(1100px, 97vw); padding: 16px 22px; max-height: 97vh; }
-  body .admin-modal:not(.admin-modal-large) .modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 16px; margin-bottom: 10px; }
-  body .admin-modal .modal-sub { margin-bottom: 10px; }
+  body .admin-modal:has(.modal-grid):not(.admin-modal-large) { max-width: min(1280px, 97vw); padding: 20px 28px; max-height: 97vh; }
+  body .admin-modal:not(.admin-modal-large) .modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 20px; margin-bottom: 14px; }
+  body .admin-modal:not(.admin-modal-large) .modal-grid .k { font-size: .86rem; }
+  body .admin-modal:not(.admin-modal-large) .modal-grid .v { font-size: 1.05rem; }
+  body .admin-modal:not(.admin-modal-large) h3 { font-size: 1.4rem; }
+  body .admin-modal .modal-sub { margin-bottom: 12px; font-size: .92rem; }
 
   /* Détail avec reçu : informations à gauche, reçus à droite, hauteur = écran */
   body .admin-modal.admin-modal-large {
-    max-width: min(1240px, 97vw); width: 97vw; height: 97vh; max-height: 97vh;
-    padding: 14px 18px; overflow: hidden; display: flex; flex-direction: column;
+    max-width: min(1560px, 98vw); width: 98vw; height: 97vh; max-height: 97vh;
+    padding: 18px 22px; overflow: hidden; display: flex; flex-direction: column;
   }
   body .admin-modal.admin-modal-large .modal-split {
-    display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; flex: 1; min-height: 0;
+    display: grid; grid-template-columns: minmax(340px, 430px) minmax(0, 1fr); gap: 22px; flex: 1; min-height: 0;
   }
   body .admin-modal.admin-modal-large .modal-left { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding-right: 4px; }
-  body .admin-modal.admin-modal-large .modal-left h3 { font-size: 1.1rem; }
-  body .admin-modal.admin-modal-large .modal-sub { font-size: .76rem; margin-bottom: 8px; }
-  body .admin-modal.admin-modal-large .modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin-bottom: 8px; }
-  body .admin-modal.admin-modal-large .modal-grid .k { font-size: .7rem; }
-  body .admin-modal.admin-modal-large .modal-grid .v { font-size: .86rem; margin-top: 0; word-break: break-word; }
+  body .admin-modal.admin-modal-large .modal-left h3 { font-size: 1.45rem; }
+  body .admin-modal.admin-modal-large .modal-sub { font-size: .9rem; margin-bottom: 12px; }
+  body .admin-modal.admin-modal-large .modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-bottom: 12px; }
+  body .admin-modal.admin-modal-large .modal-grid .k { font-size: .84rem; }
+  body .admin-modal.admin-modal-large .modal-grid .v { font-size: 1.02rem; margin-top: 1px; word-break: break-word; }
   body .admin-modal.admin-modal-large .modal-left .admin-btn-block { margin-top: 6px; }
   body .admin-modal.admin-modal-large #btn-close-modal { margin-top: auto; }
   body .admin-modal.admin-modal-large .modal-right { min-height: 0; display: flex; flex-direction: column; }
-  body .admin-modal.admin-modal-large .modal-recu-titre { margin: 2px 0 6px; }
-  body .admin-modal.admin-modal-large .modal-recu-zone { flex: 1 1 0; min-height: 0; margin: 0; overflow: hidden; }
+  body .admin-modal.admin-modal-large .modal-recu-titre { margin: 2px 0 8px; font-size: 1.05rem; }
+  body .admin-modal.admin-modal-large .modal-recu-zone { flex: 1 1 0; min-height: 0; margin: 0; overflow-x: hidden; overflow-y: auto; }
 }
 @media (max-width: 899px) {
   body .admin-modal .modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -1227,8 +1227,8 @@ function afficherRecuDansModal(c) {
     @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  // Les 2 reçus sont réduits pour tenir dans la hauteur de la zone : pas de défilement.
-  recuSurveillerIframe(iframe, () => zone.clientHeight - 4);
+  // Les 2 reçus sont agrandis pour remplir la largeur de la zone (lisibles sans plisser les yeux) ; la zone défile si besoin.
+  recuSurveillerIframe(iframe, () => zone.clientHeight - 4, undefined, true);
 }
 
 // Corrections faites par l'agent après l'enregistrement (table colis_modifications).

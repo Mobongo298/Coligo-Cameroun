@@ -653,31 +653,40 @@ table.admin-table td .etat-vide { white-space: normal; }
 #alertes-corrections {
   position: fixed; top: 16px; right: 16px; z-index: 80;
   display: flex; flex-direction: column; gap: 10px;
-  width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto;
+  width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto;
 }
 .alerte-correction {
   position: relative; background: #fff; border: 1px solid #fcd34d; border-left: 5px solid #f59e0b;
-  border-radius: 14px; padding: 14px 40px 14px 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22);
-  font-size: 0.85rem; color: #0f172a;
+  border-radius: 16px; padding: 20px 52px 20px 22px; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.28);
+  font-size: 1.02rem; color: #0f172a;
 }
-.alerte-titre { font-weight: 700; color: #b45309; margin-bottom: 4px; }
-.alerte-meta { color: #475569; margin-bottom: 6px; }
-.alerte-raison { background: #fffbeb; border-radius: 8px; padding: 6px 9px; margin-bottom: 6px; }
+.alerte-titre { font-weight: 700; font-size: 1.2rem; color: #b45309; margin-bottom: 6px; }
+.alerte-meta { color: #475569; margin-bottom: 10px; }
+.alerte-raison { background: #fffbeb; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
 .alerte-raison span { font-weight: 600; }
-.alerte-ligne { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.8rem; padding: 2px 0; }
-.alerte-ligne span { color: #64748b; min-width: 110px; }
+.alerte-ligne { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.98rem; padding: 3px 0; }
+.alerte-ligne span { color: #64748b; min-width: 140px; }
 .alerte-ligne s { color: #94a3b8; }
-.alerte-fermer { position: absolute; top: 6px; right: 10px; font-size: 1.4rem; line-height: 1; color: #64748b; background: none; border: 0; cursor: pointer; }
-.alerte-voir { margin-top: 8px; background: #f59e0b; color: #fff; font-weight: 600; border: 0; border-radius: 9px; padding: 6px 12px; cursor: pointer; }
+.alerte-fermer { position: absolute; top: 8px; right: 14px; font-size: 2rem; line-height: 1; color: #64748b; background: none; border: 0; cursor: pointer; }
+.alerte-voir { margin-top: 12px; background: #f59e0b; color: #fff; font-weight: 600; font-size: 1rem; border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer; }
 .alerte-voir:hover { background: #d97706; }
 
 /* ---------- Cloche : centre de notifications ---------- */
-.notif-section { font-weight: 700; font-size: .85rem; color: var(--ink, #0F2A44); margin: 14px 0 6px; }
-.notif-neuf { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700; background: #E5F1FB; color: #0C3F65; }
-.notif-vu { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 600; background: #EEF2F6; color: #6B7C8F; }
+.notif-section { font-weight: 700; font-size: 1.05rem; color: var(--ink, #0F2A44); margin: 14px 0 6px; }
+.notif-neuf { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: #E5F1FB; color: #0C3F65; }
+.notif-vu { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .82rem; font-weight: 600; background: #EEF2F6; color: #6B7C8F; }
 tr.notif-ligne-vue td { opacity: .72; }
 
 /* ---------- Fenêtre large : détail d'une notification avec le reçu ---------- */
 .admin-modal.admin-modal-large { max-width: 780px; }
 .modal-recu-titre { font-weight: 700; font-size: .92rem; color: var(--brand-deep); margin: 4px 0 8px; }
 .modal-recu-zone { margin-bottom: 16px; border-radius: 10px; overflow: hidden; background: #f8fafc; }
+
+/* ---------- Fenêtre « Notifications » (liste de la cloche) : plus large, texte plus grand ---------- */
+body .admin-modal:has(.notif-section) { max-width: min(1000px, 96vw); padding: 28px 32px; }
+body .admin-modal:has(.notif-section) h3 { font-size: 1.5rem; }
+body .admin-modal:has(.notif-section) .modal-sub { font-size: 1rem; }
+body .admin-modal:has(.notif-section) .admin-table { font-size: 1rem; }
+body .admin-modal:has(.notif-section) .admin-table th { font-size: .9rem; }
+body .admin-modal:has(.notif-section) .admin-table td, body .admin-modal:has(.notif-section) .admin-table th { padding-top: 13px; padding-bottom: 13px; }
+body .admin-modal:has(.notif-section) .admin-btn { font-size: 1.02rem; padding-top: 12px; padding-bottom: 12px; }

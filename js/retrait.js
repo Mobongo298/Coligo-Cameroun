@@ -247,8 +247,8 @@ function ouvrirRecuModal(c) {
     @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  // Les 2 reçus sont réduits pour tenir dans la fenêtre (grand écran) : pas de défilement.
-  recuSurveillerIframe(iframe, () => corps.clientHeight - 24);
+  // Les 2 reçus sont agrandis pour remplir la largeur de la fenêtre (grand écran) ; la zone défile si besoin.
+  recuSurveillerIframe(iframe, () => corps.clientHeight - 24, undefined, true);
 }
 
 async function rechercherColisDashboard() {

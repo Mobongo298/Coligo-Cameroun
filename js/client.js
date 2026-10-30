@@ -177,8 +177,8 @@ async function afficherResultat(c) {
   // Raccourci Ctrl+P / Cmd+P bloqué aussi quand le focus est dans l'iframe.
   try { doc.addEventListener('keydown', bloquerRaccourciImpression, true); } catch (e) { /* silencieux */ }
 
-  // Les 2 exemplaires sont réduits pour tenir dans la zone (grand écran) : aucun défilement.
-  recuSurveillerIframe(iframe, () => preview.parentElement.clientHeight - 4);
+  // Les 2 exemplaires sont agrandis pour remplir la zone (grand écran) ; la zone défile si besoin.
+  recuSurveillerIframe(iframe, () => preview.parentElement.clientHeight - 4, undefined, true);
 
   document.getElementById('suivi-modal-corps').scrollTop = 0;
 }

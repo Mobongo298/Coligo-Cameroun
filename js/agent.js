@@ -676,9 +676,9 @@ async function voirColis(id, bandeau) {
     @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
     </style></head><body>${recuCompletHtml(c)}</body></html>`);
   doc.close();
-  // Sur grand écran, les 2 reçus sont réduits pour tenir dans la hauteur visible : pas de défilement.
+  // Sur grand écran, les 2 reçus sont agrandis pour remplir la largeur (lisibles à l'œil nu) ; la page défile si besoin.
   const zoneRecu = document.getElementById('detail-recu');
-  recuSurveillerIframe(iframe, () => window.innerHeight - (zoneRecu.getBoundingClientRect().top + window.scrollY) - 28);
+  recuSurveillerIframe(iframe, () => window.innerHeight - (zoneRecu.getBoundingClientRect().top + window.scrollY) - 28, undefined, true);
 
   detailOuvert = { id: c.id, statut: st };
   liste.classList.add('hidden');

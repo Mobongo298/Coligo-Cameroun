@@ -1,10 +1,10 @@
 // COLIGO — affichage des fenêtres sans défilement vertical.
 // Quand une fenêtre (détail colis, reçu, listing, suivi client, modification…) est plus haute
 // que l'écran, son contenu est légèrement réduit pour que TOUT soit visible d'un coup d'œil.
-// Réduction limitée à 70 % : en dessous, le texte devient illisible et le défilement reprend.
+// Réduction limitée à 92 % : en dessous, le texte devient trop petit et le défilement reprend.
 // Sur téléphone (écran étroit), on garde le défilement normal.
 (function () {
-  const ZOOM_MIN = 0.7;      // plus petit facteur de réduction accepté
+  const ZOOM_MIN = 0.92;     // plus petit facteur de réduction accepté (au-delà : la fenêtre défile)
   const LARGEUR_MIN = 700;   // en dessous : mobile, pas de réduction
   const MARGE = 0.95;        // part de la hauteur d'écran utilisable
 

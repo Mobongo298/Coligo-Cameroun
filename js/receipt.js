@@ -444,7 +444,7 @@ const RECU_CSS = `
 // dans la hauteur disponible (maxH, en px ou fonction ; 0 = pas de limite).
 // Sur écran étroit (téléphone), aucune réduction : le défilement reste normal.
 // ----------------------------------------------------------
-function recuAjusterIframe(iframe, maxH, zoomMin) {
+function recuAjusterIframe(iframe, maxH, zoomMin, agrandir) {
   try {
     const doc = iframe.contentDocument;
     if (!doc || !doc.body) return;
@@ -454,13 +454,26 @@ function recuAjusterIframe(iframe, maxH, zoomMin) {
     const naturel = Math.ceil(Math.max(...Array.from(recus).map(r => r.getBoundingClientRect().bottom)) + 16);
     const limite = (typeof maxH === 'function' ? maxH() : maxH) || 0;
     let z = 1;
-    if (limite > 0 && window.innerWidth >= 900 && naturel > limite) z = Math.max(zoomMin || 0.45, limite / naturel);
+    if (agrandir) {
+      // Mode « lisible à l'œil nu » : les reçus ne sont JAMAIS réduits. Ils sont agrandis pour
+      // remplir la largeur disponible (les 2 exemplaires restent côte à côte) ; si la hauteur
+      // dépasse la fenêtre, c'est la zone qui défile.
+      const ZOOM_MAX = 1.6;
+      const iw = iframe.clientWidth;
+      if (window.innerWidth >= 900 && iw > 0) {
+        const rects = Array.from(recus).map(r => r.getBoundingClientRect());
+        const cs = doc.defaultView.getComputedStyle(doc.body);
+        const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+        const largeurNat = Math.max(...rects.map(r => r.right)) - Math.min(...rects.map(r => r.left)) + padX;
+        if (largeurNat > 0) z = Math.min(ZOOM_MAX, Math.max(1, Math.floor(((iw - 20) / largeurNat) * 100) / 100));
+      }
+    } else if (limite > 0 && window.innerWidth >= 900 && naturel > limite) z = Math.max(zoomMin || 0.45, limite / naturel);
     doc.body.style.zoom = z === 1 ? '' : String(z);
     iframe.style.height = Math.ceil(naturel * z) + 'px';
   } catch (e) { /* silencieux */ }
 }
-function recuSurveillerIframe(iframe, maxH, zoomMin) {
-  const f = () => recuAjusterIframe(iframe, maxH, zoomMin);
+function recuSurveillerIframe(iframe, maxH, zoomMin, agrandir) {
+  const f = () => recuAjusterIframe(iframe, maxH, zoomMin, agrandir);
   [60, 250, 600, 1200].forEach(t => setTimeout(f, t));
   try { iframe.contentWindow.addEventListener('resize', f); } catch (e) { /* silencieux */ }
   window.addEventListener('resize', f);
