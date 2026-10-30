@@ -1178,37 +1178,13 @@ document.getElementById('btn-logout-param').addEventListener('click', () => {
 function openColisModal(c, retour, opts) {
   opts = opts || {};
   notifOuverte = opts.notifCle || null;
-  const content = document.getElementById('modal-content');
-  content.classList.toggle('admin-modal-large', !!opts.recu);
-  content.innerHTML = `
-    ${opts.recu ? '<div class="modal-split"><div class="modal-left">' : ''}
-    <h3>${esc(c.numero_suivi)}</h3>
-    <div class="modal-sub">Consultation uniquement — l'agent ne peut corriger un colis qu'une seule fois, tant qu'il est « Enregistré ».</div>
-    <div class="modal-grid">
-      <div><div class="k">Statut</div><div class="v">${statutBadge(c.statut)}</div></div>
-      <div><div class="k">Agence</div><div class="v">${esc(c.agence) || '—'}</div></div>
-      <div><div class="k">Expéditeur</div><div class="v">${esc(c.expediteur_nom)}</div></div>
-      <div><div class="k">Téléphone expéditeur</div><div class="v">${esc(c.expediteur_telephone) || '—'}</div></div>
-      <div><div class="k">Destinataire</div><div class="v">${esc(c.destinataire_nom)}</div></div>
-      <div><div class="k">Téléphone destinataire</div><div class="v">${esc(c.destinataire_telephone) || '—'}</div></div>
-      <div><div class="k">Ville de départ</div><div class="v">${esc(c.ville_depart) || '—'}</div></div>
-      <div><div class="k">Ville d'arrivée</div><div class="v">${esc(c.ville_arrivee) || '—'}</div></div>
-      <div><div class="k">Montant payé</div><div class="v">${formatFCFA(c.montant_paye)}</div></div>
-      <div><div class="k">Valeur déclarée</div><div class="v">${formatFCFA(c.valeur)}</div></div>
-      <div><div class="k">Agent</div><div class="v">${esc(c.cree_par) || '—'}</div></div>
-      <div><div class="k">Date d'enregistrement</div><div class="v">${formatDateTime(c.created_at)}</div></div>
-      <div class="full"><div class="k">Description du colis</div><div class="v">${esc(c.Description_du_colis) || '—'}</div></div>
-    </div>
-    <div id="modal-corrections"></div>
-    ${retour ? `<button class="admin-btn admin-btn-block ghost" id="btn-retour-liste" style="margin-bottom:8px;">&larr; ${opts.notifCle ? 'Retour aux notifications' : 'Retour à la liste'}</button>` : ''}
-    <button class="admin-btn admin-btn-block" id="btn-close-modal">Fermer</button>
-    ${opts.recu ? `</div><div class="modal-right"><div class="modal-recu-titre">Reçu du colis ${esc(c.numero_suivi)}</div><div id="modal-recu" class="modal-recu-zone"></div></div></div>` : ''}
-  `;
-  document.getElementById('modal-backdrop').classList.remove('hidden');
-  document.getElementById('btn-close-modal').addEventListener('click', closeModal);
-  if (retour) document.getElementById('btn-retour-liste').addEventListener('click', retour);
-  afficherCorrectionsColis(c);
-  if (opts.recu) afficherRecuDansModal(c);
+  // Fenêtre de détail commune à tous les espaces : informations à gauche, reçus à droite.
+  SuiviFenetre.ouvrir(c, {
+    sous: "Consultation uniquement — l'agent ne peut corriger un colis qu'une seule fois, tant qu'il est « Enregistré ».",
+    extra: (zone) => afficherCorrectionsColis(c, zone),
+    retour: retour ? { label: opts.notifCle ? 'Retour aux notifications' : 'Retour à la liste', onClick: retour } : null,
+    onFermer: () => closeModal()
+  });
 }
 
 // Aperçu du reçu (2 exemplaires, format 80 mm) dans une iframe isolée — même rendu que l'espace agent.
@@ -1237,12 +1213,12 @@ const LIBELLES_CHAMPS_COLIS = {
   destinataire_nom: 'Destinataire', destinataire_telephone: 'Tél. destinataire',
   Description_du_colis: 'Description', montant_paye: 'Montant payé', valeur: 'Valeur déclarée'
 };
-async function afficherCorrectionsColis(c) {
-  const zone = document.getElementById('modal-corrections');
+async function afficherCorrectionsColis(c, zoneCible) {
+  const zone = zoneCible || document.getElementById('modal-corrections');
   if (!zone) return;
   const { data, error } = await supabaseClient.from('colis_modifications')
     .select('*').eq('colis_id', String(c.id)).order('modifie_le', { ascending: false });
-  if (error || !data || !data.length || !document.getElementById('modal-corrections')) return;
+  if (error || !data || !data.length || !zone.isConnected) return;
   const val = (k, v) => (k === 'montant_paye' || k === 'valeur') ? formatFCFA(v) : (esc(v) || '—');
   zone.innerHTML = `
     <div class="corrections-box">

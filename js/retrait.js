@@ -223,32 +223,12 @@ function demarrerTempsReel(agent) {
 // (bouton « Fermer », croix, clic à côté ou touche Échap).
 
 function fermerRecuModal() {
-  const m = document.getElementById('recu-modal');
-  if (!m) return;
-  m.classList.add('hidden');
-  document.getElementById('recu-modal-corps').innerHTML = '';
+  if (SuiviFenetre.estOuverte()) SuiviFenetre.fermer();
 }
 
+// Fenêtre de détail commune à tous les espaces (informations + reçus).
 function ouvrirRecuModal(c) {
-  document.getElementById('recu-modal-titre').textContent = 'Reçu du colis ' + (c.numero_suivi || '');
-  const corps = document.getElementById('recu-modal-corps');
-  corps.innerHTML = '';
-  const iframe = document.createElement('iframe');
-  iframe.title = 'Reçu du colis';
-  iframe.style.cssText = 'width:100%; border:0; display:block; height:600px;';
-  corps.appendChild(iframe);
-  document.getElementById('recu-modal').classList.remove('hidden');
-
-  const doc = iframe.contentDocument;
-  doc.open();
-  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
-    body { background:#f8fafc; padding:12px 0; margin:0; }
-    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
-    @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
-    </style></head><body>${recuCompletHtml(c)}</body></html>`);
-  doc.close();
-  // Les 2 reçus sont agrandis pour remplir la largeur de la fenêtre (grand écran) ; la zone défile si besoin.
-  recuSurveillerIframe(iframe, () => corps.clientHeight - 24, undefined, true);
+  SuiviFenetre.ouvrir(c, { sous: 'Consultation uniquement.' });
 }
 
 async function rechercherColisDashboard() {
@@ -280,9 +260,6 @@ async function rechercherColisDashboard() {
 
 document.getElementById('dash-btn-rechercher').addEventListener('click', rechercherColisDashboard);
 document.getElementById('dash-recherche-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') rechercherColisDashboard(); });
-document.getElementById('recu-modal-x').addEventListener('click', fermerRecuModal);
-document.getElementById('recu-modal-fermer').addEventListener('click', fermerRecuModal);
-document.getElementById('recu-modal').addEventListener('click', (e) => { if (e.target.id === 'recu-modal') fermerRecuModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fermerRecuModal(); });
 
 // ---------- Recherche d'un colis ----------
@@ -646,7 +623,7 @@ async function chargerHistorique() {
     const retirePar = r.mandataire_nom ? `${esc(r.mandataire_nom)} (mandataire)` : `${esc(c.destinataire_nom) || '—'} (destinataire)`;
     const cni = r.mandataire_cni || r.destinataire_cni || '—';
     return `
-      <tr class="hover:bg-slate-50">
+      <tr class="hover:bg-slate-50 cursor-pointer" data-cid="${ldMemo(c)}" title="Voir le suivi et le reçu">
         <td class="py-3 pr-3 whitespace-nowrap">${fmtDateTime(r.created_at)}</td>
         <td class="py-3 pr-3 font-medium whitespace-nowrap">${esc(c.numero_suivi) || '—'}</td>
         <td class="py-3 pr-3">${esc(c.destinataire_nom) || '—'}<div class="text-xs text-slate-500">${esc(c.destinataire_telephone) || '—'}</div></td>

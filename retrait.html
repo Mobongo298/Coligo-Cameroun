@@ -33,14 +33,6 @@
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/auth.css">
 <style>
-  /* Fenêtre du reçu : hauteur d'écran, reçus agrandis (la zone défile si besoin) */
-  /* Le voile lui-même porte role=dialog : on neutralise la limite de hauteur du thème */
-  #recu-modal { max-height: none !important; overflow: hidden !important; animation: none !important; width: auto !important; max-width: none !important; border-radius: 0 !important; box-shadow: none !important; }
-  @media (min-width: 900px) {
-    #recu-modal { padding: 8px; }
-    #recu-modal > div { height: 97vh; max-height: 97vh; width: 98vw; max-width: min(1560px, 98vw); }
-    #recu-modal-corps { flex: 1 1 0; min-height: 0; overflow-x: hidden; overflow-y: auto; }
-  }
 </style>
 </head>
 <body class="app-bg font-sans text-slate-800 min-h-screen">
@@ -327,23 +319,10 @@
   </div>
 </div>
 
-<!-- Fenêtre du reçu d'un colis recherché (se ferme à la main : bouton, clic à côté ou Échap) -->
-<div id="recu-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="recu-modal-titre">
-  <div class="bg-white rounded-2xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl">
-    <div class="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200">
-      <h3 id="recu-modal-titre" class="font-bold text-coligo-deep">Reçu du colis</h3>
-      <button type="button" id="recu-modal-x" class="text-2xl leading-none text-slate-500 hover:text-slate-800 px-2" aria-label="Fermer">&times;</button>
-    </div>
-    <div id="recu-modal-corps" class="overflow-auto p-3"></div>
-    <div class="flex justify-end px-5 py-3 border-t border-slate-200">
-      <button type="button" id="recu-modal-fermer" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-6 py-2.5 rounded-xl transition">Fermer</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/receipt.js"></script>
+<script src="js/suivi-fenetre.js"></script>
 <script src="js/listing-detail.js"></script>
 <script src="js/config.js"></script>
 <script src="js/reset-password.js"></script>

@@ -596,7 +596,7 @@ let detailOuvert = null; // { id, statut } du colis affiché
 // Temps réel : si le statut du colis affiché change, le détail est mis à jour.
 // S'il n'est plus dans la liste (retiré), on revient à la liste.
 function rafraichirDetailOuvert() {
-  if (!detailOuvert || document.getElementById('suivi-detail').classList.contains('hidden')) return;
+  if (!detailOuvert || !SuiviFenetre.estOuverte()) return;
   const c = colisCache.find(x => String(x.id) === String(detailOuvert.id));
   if (!c) { fermerDetailColis(); return; }
   if (normalizeStatut(c.statut) !== detailOuvert.statut) voirColis(c.id);
@@ -616,82 +616,32 @@ async function voirColis(id, bandeau) {
   const c = colisCache.find(x => String(x.id) === String(id));
   if (!c) return;
   closeModal();
-  const vueSuivi = document.getElementById('view-suivi');
-  if (!vueSuivi.classList.contains('active')) show('suivi');
-  const liste = document.getElementById('suivi-liste');
-  if (!liste.classList.contains('hidden')) suiviScrollY = window.scrollY;
 
   const dejaModifie = (await corrections_deja_faites(c.id)) > 0;
   const modifiable = colisModifiable(c) && !dejaModifie;
   const st = normalizeStatut(c.statut);
 
-  let note = '';
+  let note = 'Aperçu du reçu remis au client (exemplaire client et exemplaire agence).';
   if (dejaModifie) note = 'Les informations d\u2019enregistrement de ce colis ont déjà été modifiées une fois : aucune autre modification n\u2019est possible.';
   else if (!colisModifiable(c)) note = raisonNonModifiable(c);
 
-  const detail = document.getElementById('suivi-detail');
-  detail.innerHTML = `
-    <div class="detail-top flex flex-wrap items-center gap-3 mb-4">
-      <button type="button" onclick="fermerDetailColis()" class="inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-        Fermer
-      </button>
-    </div>
-
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 lg:p-6">
-      <div class="detail-entete flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 class="font-semibold">Reçu du colis ${esc(c.numero_suivi)}</h2>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="fermerDetailColis()" class="detail-fermer-haut bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition">Fermer</button>
-          ${modifiable ? `<button type="button" id="btn-modifier-detail" class="inline-flex items-center gap-2 bg-white border border-coligo text-coligo hover:bg-coligo-light font-semibold px-4 py-2.5 rounded-xl transition">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-            Modifier les informations d'enregistrement</button>` : ''}
-          <button type="button" id="btn-imprimer-detail" class="inline-flex items-center gap-2 bg-coligo hover:bg-coligo-dark text-white font-semibold px-5 py-2.5 rounded-xl transition">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
-            Réimprimer le reçu</button>
-        </div>
-      </div>
-      ${bandeau ? `<div class="mb-4">${bandeau}</div>` : ''}
-      ${note ? `<p class="text-xs text-slate-500 mb-4">${esc(note)}</p>` : ''}
-      <div id="detail-recu" class="overflow-x-auto"></div>
-      <div class="detail-bas flex justify-end mt-4">
-        <button type="button" onclick="fermerDetailColis()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-xl transition">Fermer</button>
-      </div>
-    </div>
-  `;
-  document.getElementById('btn-imprimer-detail').addEventListener('click', () => imprimerRecu(c));
-  const btnModif = document.getElementById('btn-modifier-detail');
-  if (btnModif) btnModif.addEventListener('click', () => modifierColis(c.id));
-
-  // Aperçu du reçu (2 exemplaires, format 80 mm) dans une iframe isolée.
-  const iframe = document.createElement('iframe');
-  iframe.title = 'Reçu du colis';
-  iframe.style.cssText = 'width:100%; border:0; display:block; height:600px;';
-  document.getElementById('detail-recu').appendChild(iframe);
-  const doc = iframe.contentDocument;
-  doc.open();
-  doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${RECU_CSS}
-    body { background:#f8fafc; padding:12px 0; margin:0; }
-    .recu { box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:0 auto 14px; }
-    @media (min-width: 640px) { body { display:flex; gap:14px; justify-content:center; align-items:flex-start; } .recu { margin:0; } }
-    </style></head><body>${recuCompletHtml(c)}</body></html>`);
-  doc.close();
-  // Sur grand écran, les 2 reçus sont agrandis pour remplir la largeur (lisibles à l'œil nu) ; la page défile si besoin.
-  const zoneRecu = document.getElementById('detail-recu');
-  recuSurveillerIframe(iframe, () => window.innerHeight - (zoneRecu.getBoundingClientRect().top + window.scrollY) - 28, undefined, true);
+  // Fenêtre de détail commune à tous les espaces, avec les actions de l'agent.
+  const actions = [];
+  if (modifiable) actions.push({ label: 'Modifier les informations d\u2019enregistrement', onClick: () => { fermerDetailColis(); modifierColis(c.id); } });
+  actions.push({ label: 'Réimprimer le reçu', onClick: () => imprimerRecu(c) });
 
   detailOuvert = { id: c.id, statut: st };
-  liste.classList.add('hidden');
-  detail.classList.remove('hidden');
-  window.scrollTo(0, 0);
+  SuiviFenetre.ouvrir(c, {
+    sous: note,
+    actions,
+    extra: bandeau ? (zone) => { zone.innerHTML = bandeau; } : null,
+    onFermer: () => { detailOuvert = null; }
+  });
 }
 
 function fermerDetailColis() {
   detailOuvert = null;
-  document.getElementById('suivi-detail').classList.add('hidden');
-  document.getElementById('suivi-detail').innerHTML = '';
-  document.getElementById('suivi-liste').classList.remove('hidden');
-  window.scrollTo(0, suiviScrollY);
+  if (SuiviFenetre.estOuverte()) SuiviFenetre.fermer();
 }
 
 // ---------- Correction d'un colis après l'enregistrement ----------

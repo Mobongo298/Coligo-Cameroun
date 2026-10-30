@@ -46,6 +46,7 @@
     .ld-table tr:hover td { background: #f8fafc; }
     .ld-num { font-weight: 600; white-space: nowrap; }
     .ld-badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .ld-clic { cursor: pointer; }
     .ld-vide { text-align: center; color: #64748b; padding: 34px 10px; }
     .ld-vide svg { width: 38px; height: 38px; color: #94a3b8; display: block; margin: 0 auto 8px; }
     @media (max-width: 700px) {
@@ -58,6 +59,22 @@
   `;
   document.head.appendChild(st);
 })();
+
+// Clic sur un colis (liste d'un listing ou historique des listings) : même fenêtre « Suivi de votre colis »
+// que partout ailleurs dans l'application.
+const ldColisMemo = {};
+function ldMemo(c) { if (!c || c.id == null) return ''; ldColisMemo[String(c.id)] = c; return String(c.id).replace(/[^A-Za-z0-9_-]/g, ''); }
+function ldOuvrirColis(c) {
+  if (typeof voirColis === 'function' && typeof colisCache !== 'undefined' && colisCache.some(x => String(x.id) === String(c.id))) voirColis(c.id);
+  else if (typeof openColisModal === 'function') openColisModal(c);
+  else if (window.SuiviFenetre) SuiviFenetre.ouvrir(c);
+}
+document.addEventListener('click', (ev) => {
+  const tr = ev.target.closest && ev.target.closest('tr[data-cid]');
+  if (!tr || ev.target.closest('button, a')) return;
+  const c = ldColisMemo[tr.dataset.cid];
+  if (c) ldOuvrirColis(c);
+});
 
 function ldEsc(s) {
   return (s === null || s === undefined) ? '' : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -157,7 +174,7 @@ async function ouvrirDetailListing(listingId) {
     tbody.innerHTML = lignes.map((c, i) => {
       const s = (typeof normalizeStatut === 'function') ? normalizeStatut(c.statut) : c.statut;
       const col = (typeof statutColors === 'function') ? statutColors(s) : { bg: '#f1f5f9', text: '#334155' };
-      return `<tr>
+      return `<tr class="ld-clic" data-cid="${ldMemo(c)}" title="Voir le suivi et le reçu">
         <td data-label="#">${i + 1}</td>
         <td data-label="N° de suivi" class="ld-num">${ldEsc(c.numero_suivi)}</td>
         <td data-label="Expéditeur">${ldEsc(c.expediteur_nom) || '—'}</td>
@@ -322,7 +339,7 @@ function lgRendre(conteneur, listingsTous, parListingTous, opts) {
       const lignes = liste.map((c, i) => {
         const s = (typeof normalizeStatut === 'function') ? normalizeStatut(c.statut) : c.statut;
         const col = (typeof statutColors === 'function') ? statutColors(s) : { bg: '#f1f5f9', text: '#334155' };
-        return `<tr>
+        return `<tr class="lg-clic" data-cid="${ldMemo(c)}" title="Voir le suivi et le reçu" style="cursor:pointer">
           <td>${i + 1}</td>
           <td style="font-weight:600;white-space:nowrap">${ldEsc(c.numero_suivi)}</td>
           <td>${ldEsc(c.expediteur_nom) || '—'}<div class="lg-sub">${ldEsc(c.expediteur_telephone) || '—'}</div></td>
