@@ -187,7 +187,7 @@ let ancienStatutMap = new Map(); // id historique -> ancien statut
 let archiveCache = [];
 
 async function initDashboard() {
-  // Comptes agents désactivés depuis plus de 30 jours : suppression définitive
+  // Comptes agents désactivés depuis plus de 7 jours : suppression définitive
   // (fiche gardée dans agents_archives, activités conservées). Silencieux.
   try { await supabaseClient.rpc('agents_purger_desactives'); } catch (e) { /* ignoré */ }
   await loadSharedCache();
@@ -890,8 +890,8 @@ function renderAgentsView() {
   });
 }
 
-// Délai avant suppression définitive d'un compte désactivé : 30 jours.
-const delaiSuppressionAgents = 30;
+// Délai avant suppression définitive d'un compte désactivé : 7 jours.
+const delaiSuppressionAgents = 7;
 function joursAvantSuppression(desactiveLe) {
   if (!desactiveLe) return delaiSuppressionAgents;
   const fin = new Date(desactiveLe).getTime() + delaiSuppressionAgents * 86400000;

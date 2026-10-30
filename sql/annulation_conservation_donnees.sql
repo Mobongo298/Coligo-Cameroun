@@ -20,7 +20,7 @@
 -- (fonction nettoyer_retraits_expires, comme avant).
 --
 -- Ce qui est GARDÉ (fonctionnalités indépendantes) :
---   - désactivation des agents, avec suppression du compte après 30 jours
+--   - désactivation des agents, avec suppression du compte après 7 jours
 --     (nouvelle petite fonction agents_purger_desactives ci-dessous) ;
 --   - suppression des messages par chacun dans sa messagerie ;
 --   - effacement des codes « mot de passe oublié » après usage ;
@@ -100,7 +100,7 @@ $$;
 
 grant execute on function nettoyer_retraits_expires() to anon;
 
--- 6. Comptes agents désactivés : suppression après 30 jours, sans le cycle de vie
+-- 6. Comptes agents désactivés : suppression après 7 jours, sans le cycle de vie
 do $$ begin
   if to_regclass('public.agents_archives') is null then
     raise notice 'agents_archives absente : exécutez sql/agents_desactivation_modification_migration.sql pour la désactivation des agents.';
@@ -108,7 +108,7 @@ do $$ begin
 end $$;
 
 -- ----------------------------------------------------------
--- Suppression définitive des comptes désactivés depuis 30 jours
+-- Suppression définitive des comptes désactivés depuis 7 jours
 --     Appelée silencieusement à l'ouverture de l'espace administrateur.
 --     Une fiche résumée est gardée dans agents_archives ; toutes les
 --     activités de l'agent (colis, historique, retraits, messages) restent.
@@ -124,10 +124,10 @@ begin
   insert into agents_archives (agent_id, username, nom_complet, agence, role, fiche, desactive_le, desactive_par, desactive_motif, supprime_le)
   select a.id::text, a.username, a.nom_complet, a.agence, a.role, to_jsonb(a) - 'password', a.desactive_le, a.desactive_par, a.desactive_motif, now()
   from agents a
-  where a.actif = false and a.desactive_le < now() - interval '30 days'
+  where a.actif = false and a.desactive_le < now() - interval '7 days'
   on conflict (username) do update set supprime_le = excluded.supprime_le;
 
-  delete from agents where actif = false and desactive_le < now() - interval '30 days';
+  delete from agents where actif = false and desactive_le < now() - interval '7 days';
   get diagnostics n = row_count;
   return n;
 end;

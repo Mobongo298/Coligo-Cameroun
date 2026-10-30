@@ -16,12 +16,12 @@
   st.id = 'ld-style';
   st.textContent = `
     .ld-fond { position: fixed; inset: 0; z-index: 9990; background: rgba(15,23,42,.5);
-      display: flex; align-items: center; justify-content: center; padding: 16px; animation: ldIn .15s ease-out; }
+      display: flex; align-items: center; justify-content: center; padding: 10px; animation: ldIn .15s ease-out; }
     @keyframes ldIn { from { opacity: 0; } to { opacity: 1; } }
-    .ld-boite { background: #fff; color: #1e293b; border-radius: 16px; width: 100%; max-width: 980px;
-      max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 24px 60px -12px rgba(15,23,42,.45);
+    .ld-boite { background: #fff; color: #1e293b; border-radius: 16px; width: 100%; max-width: 1200px;
+      max-height: 96vh; display: flex; flex-direction: column; box-shadow: 0 24px 60px -12px rgba(15,23,42,.45);
       font-family: inherit; overflow: hidden; }
-    .ld-tete { padding: 18px 22px 14px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px;
+    .ld-tete { padding: 12px 22px 10px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px;
       align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
     .ld-titre { font-size: 1.15rem; font-weight: 700; margin: 0; }
     .ld-sous { font-size: .8rem; color: #64748b; margin-top: 3px; }
@@ -31,7 +31,7 @@
     .ld-btn:hover { background: #f1f5f9; }
     .ld-btn.primaire { background: #0C3F65; border-color: #0C3F65; color: #fff; }
     .ld-btn.primaire:hover { background: #0a3555; }
-    .ld-kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; padding: 14px 22px; }
+    .ld-kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; padding: 10px 22px; }
     .ld-kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; }
     .ld-kpi b { display: block; font-size: 1.05rem; margin-top: 2px; }
     .ld-kpi span { font-size: .72rem; color: #64748b; }
@@ -42,7 +42,7 @@
     .ld-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .ld-table th { position: sticky; top: 0; background: #fff; text-align: left; font-weight: 600;
       font-size: .72rem; color: #64748b; padding: 8px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
-    .ld-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .ld-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
     .ld-table tr:hover td { background: #f8fafc; }
     .ld-num { font-weight: 600; white-space: nowrap; }
     .ld-badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .72rem; font-weight: 600; white-space: nowrap; }

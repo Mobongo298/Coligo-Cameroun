@@ -724,13 +724,13 @@ function modifierColis(id) {
     </div>`;
   document.getElementById('modal-content').innerHTML = `
     <h3 class="text-lg font-bold text-coligo mb-1">Modifier ${esc(c.numero_suivi)}</h3>
-    <p class="text-sm text-slate-500 mb-5">Corrigez l'erreur de saisie. Le numéro de suivi, le trajet et la date ne changent pas. <strong>Une seule modification est possible</strong> : l'administrateur en est informé immédiatement, avec la raison indiquée.</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <p class="text-sm text-slate-500 mb-3">Corrigez l'erreur de saisie. Le numéro de suivi, le trajet et la date ne changent pas. <strong>Une seule modification est possible</strong> : l'administrateur en est informé immédiatement, avec la raison indiquée.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
       ${champ('expediteur_nom', 'Expéditeur *', 'text', c.expediteur_nom)}
       ${champ('expediteur_telephone', 'Téléphone expéditeur', 'tel', c.expediteur_telephone)}
       ${champ('destinataire_nom', 'Destinataire *', 'text', c.destinataire_nom)}
       ${champ('destinataire_telephone', 'Téléphone destinataire', 'tel', c.destinataire_telephone)}
-      <div class="sm:col-span-2">
+      <div class="sm:col-span-2 lg:col-span-3">
         <label for="m-description" class="block text-xs font-medium text-slate-600 mb-1">Description du colis *</label>
         <textarea id="m-description" rows="2" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-coligo/40 focus:border-coligo">${esc(c.Description_du_colis || '')}</textarea>
       </div>
@@ -739,7 +739,7 @@ function modifierColis(id) {
         <div class="block text-xs font-medium text-slate-600 mb-1">Valeur déclarée (10 × montant)</div>
         <div id="m-valeur" class="bg-coligo-light rounded-xl px-3 py-2.5 text-sm font-semibold text-coligo-dark">${formatFCFA((Number(c.montant_paye) || 0) * 10)}</div>
       </div>
-      <div class="sm:col-span-2">
+      <div class="sm:col-span-2 lg:col-span-3">
         ${champ('motif', 'Raison de la modification *', 'text', '', 'maxlength="200" required placeholder="Ex. : nom mal orthographié, mauvais montant"')}
       </div>
     </div>

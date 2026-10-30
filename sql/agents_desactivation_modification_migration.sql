@@ -9,7 +9,7 @@
 -- Contenu :
 --   A. Désactivation / réactivation d'un compte agent (démission, licenciement)
 --      - connexion refusée dès la désactivation ;
---      - si le compte n'est pas réactivé sous 30 jours, il est supprimé
+--      - si le compte n'est pas réactivé sous 7 jours, il est supprimé
 --        définitivement (agents_purger_desactives, appelée à l'ouverture de
 --        l'espace admin). Une fiche est gardée dans agents_archives et TOUTES ses
 --        activités restent (colis, historique, retraits, messages) ;
@@ -196,7 +196,7 @@ set search_path = public
 as $$
 declare
   v agents%rowtype;
-  v_jours int := 30;
+  v_jours int := 7;
 begin
   if not _verifier_admin(p_admin, p_password) then
     return jsonb_build_object('ok', false, 'message', 'Mot de passe administrateur incorrect.');
@@ -231,7 +231,7 @@ begin
 
 
   return jsonb_build_object('ok', true,
-    'suppression_prevue', now() + make_interval(days => coalesce(v_jours, 30)));
+    'suppression_prevue', now() + make_interval(days => coalesce(v_jours, 7)));
 end;
 $$;
 
@@ -282,7 +282,7 @@ grant execute on function agent_reactiver(text, text, text) to anon, authenticat
 grant execute on function agent_compte_actif(text) to anon, authenticated;
 
 -- ----------------------------------------------------------
--- A8. Suppression définitive des comptes désactivés depuis 30 jours
+-- A8. Suppression définitive des comptes désactivés depuis 7 jours
 --     Appelée silencieusement à l'ouverture de l'espace administrateur.
 --     Une fiche résumée est gardée dans agents_archives ; toutes les
 --     activités de l'agent (colis, historique, retraits, messages) restent.
@@ -298,10 +298,10 @@ begin
   insert into agents_archives (agent_id, username, nom_complet, agence, role, fiche, desactive_le, desactive_par, desactive_motif, supprime_le)
   select a.id::text, a.username, a.nom_complet, a.agence, a.role, to_jsonb(a) - 'password', a.desactive_le, a.desactive_par, a.desactive_motif, now()
   from agents a
-  where a.actif = false and a.desactive_le < now() - interval '30 days'
+  where a.actif = false and a.desactive_le < now() - interval '7 days'
   on conflict (username) do update set supprime_le = excluded.supprime_le;
 
-  delete from agents where actif = false and desactive_le < now() - interval '30 days';
+  delete from agents where actif = false and desactive_le < now() - interval '7 days';
   get diagnostics n = row_count;
   return n;
 end;

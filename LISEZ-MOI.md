@@ -187,7 +187,7 @@ non réclamés, archivage statistique) a été **retiré** de l'application.
 2. Ouvrez `sql/agents_desactivation_modification_migration.sql`, copiez tout, collez, **Run**.
    → Si vous l'aviez déjà exécuté, **relancez-le** : il ne dépend plus du cycle de vie. Puis lancez
    `sql/annulation_conservation_donnees.sql` (étape 1sexies), qui ajoute la suppression des comptes
-   désactivés depuis 30 jours.
+   désactivés depuis 7 jours.
 3. Ce que cela apporte :
    - **Espace agent** : en cliquant sur un colis, un bouton **Modifier** apparaît entre Fermer et
      Imprimer le reçu. Il est disponible tant que le colis est « Enregistré » et n'est pas encore sur
@@ -195,7 +195,7 @@ non réclamés, archivage statistique) a été **retiré** de l'application.
      (avant / après) et visible par l'admin sur la fiche du colis. Pensez à réimprimer le reçu.
    - **Admin > Agents** : bouton **Désactiver** (motif + mot de passe administrateur). La connexion
      est bloquée tout de suite (une session ouverte est coupée en moins de 2 minutes). Bouton
-     **Réactiver** possible pendant 30 jours ; ensuite le compte est supprimé définitivement de la
+     **Réactiver** possible pendant 7 jours ; ensuite le compte est supprimé définitivement de la
      table `agents`, mais ses colis, son historique, ses retraits et ses messages restent, et une
      fiche résumée (sans mot de passe) est gardée dans `agents_archives`. L'identifiant ne peut plus
      être réutilisé.
@@ -384,3 +384,13 @@ Tout doit rester servi en **HTTPS** (Netlify le fait déjà par défaut) — une
    revient alors sur l'espace de recherche, champ vidé et prêt pour un nouveau numéro. L'impression
    reste bloquée comme avant.
 4. Aucun script SQL n'est nécessaire : redéposez le dossier sur Netlify.
+
+## Mise à jour — fenêtres sans défilement et suppression à 7 jours
+
+- **Fenêtres** (détail colis, reçu, listing, suivi client, modification) : plus larges, informations
+  en colonnes et marges resserrées pour tout voir d'un coup d'œil sur ordinateur/tablette. Si une
+  fenêtre dépasse encore la hauteur de l'écran, `js/fit-fenetres.js` la réduit légèrement (jusqu'à
+  70 % maximum). Sur téléphone, le défilement reste normal.
+- **Comptes agents désactivés** : suppression définitive après **7 jours** (au lieu de 30).
+  Réexécutez dans Supabase (SQL Editor) : `sql/agents_desactivation_modification_migration.sql`,
+  puis `sql/annulation_conservation_donnees.sql`, pour appliquer le nouveau délai côté base.
